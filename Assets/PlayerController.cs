@@ -5,7 +5,7 @@ using UnityEngine;
 public class PlayerController : MonoBehaviour {
 
     Rigidbody player;
-    GameObject mouseHelp;
+    RectTransform mouseHelp;
     Camera mainCam;
     float moveX;
     float moveY;
@@ -17,24 +17,25 @@ public class PlayerController : MonoBehaviour {
     // Use this for initialization
     void Start () {
         player = this.GetComponent<Rigidbody>();
-        mouseHelp = GameObject.FindGameObjectWithTag("GameController");
-        mouseHelp.GetComponent<Renderer>().sortingOrder = 1000000;
+        mouseHelp = GameObject.FindGameObjectWithTag("WorldUI").GetComponent<RectTransform>();
         mainCam = FindObjectOfType<Camera>();
-        mouseHelp.SetActive(false);
+        //mouseHelp.gameObject.SetActive(false);
     }
 
     // Update is called once per frame
     void Update()
     {
         camRay = mainCam.ScreenPointToRay(Input.mousePosition);
+        //If it hits the floor
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
-            mouseHelp.SetActive(true);
-            Vector3 mousePos = new Vector3((int)floorPos.point.x + 0.5f, 0.001f, (int)floorPos.point.z + 0.5f);
-            mouseHelp.transform.position = mousePos;
+            //mouseHelp.gameObject.SetActive(true);
+            Vector3 mousePos1 = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
+            //print("MousePos: " + floorPos.point.x + ", " + floorPos.point.z + "; MouseHelp: " + mousePos1.x + ", " + mousePos1.z);
+            mouseHelp.transform.position = mousePos1;
         }
         else {
-            mouseHelp.SetActive(false);
+            //mouseHelp.gameObject.SetActive(false);
         }
         if (Input.GetMouseButtonDown(0))
         {
@@ -45,9 +46,14 @@ public class PlayerController : MonoBehaviour {
     void Movement() {
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
-            Vector3 newPos = new Vector3((int)floorPos.point.x + 0.5f, player.transform.position.y, (int) floorPos.point.z + 0.5f);
+            Vector3 newPos = new Vector3(ConvertToFloorUnits(floorPos.point.x), player.transform.position.y, ConvertToFloorUnits(floorPos.point.z));
             player.transform.position = newPos;
         }
+    }
+
+    float ConvertToFloorUnits(float x) {
+        if (x < 0) return (int)x - 0.5f;
+        else return (int)x + 0.5f;
     }
 
 }
