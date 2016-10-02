@@ -13,6 +13,8 @@ public class PlayerController : MonoBehaviour {
     public LayerMask floorMask;
     RaycastHit floorPos;
     Ray camRay;
+    bool playerMoving = false;
+    Vector3 newPos;
 
     // Use this for initialization
     void Start () {
@@ -33,23 +35,30 @@ public class PlayerController : MonoBehaviour {
             Vector3 mousePos1 = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
             //print("MousePos: " + floorPos.point.x + ", " + floorPos.point.z + "; MouseHelp: " + mousePos1.x + ", " + mousePos1.z);
             mouseHelp.transform.position = mousePos1;
-        }
-        else {
-            //mouseHelp.gameObject.SetActive(false);
-        }
-        if (Input.GetMouseButtonDown(0))
-        {
-            Movement();
+            if (Input.GetMouseButtonDown(0) && !playerMoving)
+            {
+                newPos = mousePos1;
+                newPos.y = 0.5f;
+                playerMoving = true;
+            }
+            if(playerMoving)
+            {
+                player.transform.position = Vector3.MoveTowards(player.transform.position, newPos, Time.deltaTime * 3f);
+                if (player.transform.position == newPos) playerMoving = false;
+            }
         }
     }
 
-    void Movement() {
+   /* void Movement() {
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
-            Vector3 newPos = new Vector3(ConvertToFloorUnits(floorPos.point.x), player.transform.position.y, ConvertToFloorUnits(floorPos.point.z));
-            player.transform.position = newPos;
+            newPos = new Vector3(ConvertToFloorUnits(floorPos.point.x), player.transform.position.y, ConvertToFloorUnits(floorPos.point.z));
+            //player.transform.position = newPos;
         }
-    }
+        if () {
+            playerMoving = false;
+        }
+    }*/
 
     float ConvertToFloorUnits(float x) {
         if (x < 0) return (int)x - 0.5f;
