@@ -48,7 +48,7 @@ public class PlayerController : MonoBehaviour {
             if (Input.GetMouseButtonDown(0) && !playerMoving)
             {
                 newPos = mousePos1;
-                newPos.y = 0.5f;
+                newPos.y = player.transform.position.y;
                 playerMoving = true;
             }
             if(playerMoving)
@@ -72,7 +72,7 @@ public class PlayerController : MonoBehaviour {
         Vector3 rightVect = current + Vector3.right;
         HashSet<Vector3> rightVisited = new HashSet<Vector3> { };
         if (!(visited.Contains(rightVect))) {
-            rightVisited = CalculateMoveLimits(rightVect, new HashSet<Vector3> { }, limit);
+            rightVisited = CalculateMoveLimits(rightVect, new HashSet<Vector3> {current}, limit);
         }
         //if left in visited - don't add else leftVect
         //Vector3 leftVect = new Vector3(current.x, current.y, current.z + 1);
@@ -80,7 +80,7 @@ public class PlayerController : MonoBehaviour {
         HashSet<Vector3> leftVisited = new HashSet<Vector3> { };
         if (!(visited.Contains(leftVect)))
         {
-            leftVisited = CalculateMoveLimits(leftVect, new HashSet<Vector3> { }, limit);
+            leftVisited = CalculateMoveLimits(leftVect, new HashSet<Vector3> {current}, limit);
         }
         //if up in visited - don't add else upVect
         //Vector3 upVect = new Vector3(current.x + 1, current.y, current.z + 1);
@@ -88,7 +88,7 @@ public class PlayerController : MonoBehaviour {
         HashSet<Vector3> upVisited = new HashSet<Vector3> { };
         if (!(visited.Contains(upVect)))
         {
-            upVisited = CalculateMoveLimits(upVect, new HashSet<Vector3> { }, limit);
+            upVisited = CalculateMoveLimits(upVect, new HashSet<Vector3> {current}, limit);
         }
         //if down in visited - don't add else downVect
         //Vector3 downVect = new Vector3(current.x - 1, current.y, current.z - 1);
@@ -96,7 +96,7 @@ public class PlayerController : MonoBehaviour {
         HashSet<Vector3> downVisited = new HashSet<Vector3> { };
         if (!(visited.Contains(downVect)))
         {
-            downVisited = CalculateMoveLimits(downVect, new HashSet<Vector3> { }, limit);
+            downVisited = CalculateMoveLimits(downVect, new HashSet<Vector3> {current}, limit);
         }
         visited.UnionWith(upVisited);
         visited.UnionWith(downVisited);
