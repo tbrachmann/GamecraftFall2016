@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour {
     Ray camRay;
     bool playerMoving = false;
     Vector3 newPos;
+    public const int playerMoveLimit = 3;
 
     // Use this for initialization
     void Start () {
@@ -22,6 +23,15 @@ public class PlayerController : MonoBehaviour {
         mouseHelp = GameObject.FindGameObjectWithTag("WorldUI").GetComponent<RectTransform>();
         mainCam = FindObjectOfType<Camera>();
         //mouseHelp.gameObject.SetActive(false);
+        HashSet<Vector3> returnList = CalculateMoveLimits(player.transform.position, new HashSet<Vector3>{ });
+        IEnumerator<Vector3> myEnumerator = returnList.GetEnumerator();
+        print(returnList.Count);
+        //((RectTransform)Object.Instantiate(mouseHelp)).transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
+        while (myEnumerator.MoveNext())
+        {
+            //print(returnList[i]);
+            ((RectTransform)Object.Instantiate(mouseHelp)).transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
+        }
     }
 
     // Update is called once per frame
@@ -49,16 +59,51 @@ public class PlayerController : MonoBehaviour {
         }
     }
 
-   /* void Movement() {
-        if (Physics.Raycast(camRay, out floorPos, floorMask))
+    //Use this to paint all available moves.
+    HashSet<Vector3> CalculateMoveLimits(Vector3 current, HashSet<Vector3> visited, int limit = playerMoveLimit) {
+        if (limit == 0) {
+            visited.Add(current);
+            return visited;
+        }
+        visited.Add(current);
+        limit = limit - 1;
+        //if right in visited - don't add else rightVect
+        //Vector3 rightVect = new Vector3(current.x + 1, current.y, current.z);
+        Vector3 rightVect = current + Vector3.right;
+        HashSet<Vector3> rightVisited = new HashSet<Vector3> { };
+        if (!(visited.Contains(rightVect))) {
+            rightVisited = CalculateMoveLimits(rightVect, new HashSet<Vector3> { }, limit);
+        }
+        //if left in visited - don't add else leftVect
+        //Vector3 leftVect = new Vector3(current.x, current.y, current.z + 1);
+        Vector3 leftVect = current + Vector3.left;
+        HashSet<Vector3> leftVisited = new HashSet<Vector3> { };
+        if (!(visited.Contains(leftVect)))
         {
-            newPos = new Vector3(ConvertToFloorUnits(floorPos.point.x), player.transform.position.y, ConvertToFloorUnits(floorPos.point.z));
-            //player.transform.position = newPos;
+            leftVisited = CalculateMoveLimits(leftVect, new HashSet<Vector3> { }, limit);
         }
-        if () {
-            playerMoving = false;
+        //if up in visited - don't add else upVect
+        //Vector3 upVect = new Vector3(current.x + 1, current.y, current.z + 1);
+        Vector3 upVect = current + Vector3.forward;
+        HashSet<Vector3> upVisited = new HashSet<Vector3> { };
+        if (!(visited.Contains(upVect)))
+        {
+            upVisited = CalculateMoveLimits(upVect, new HashSet<Vector3> { }, limit);
         }
-    }*/
+        //if down in visited - don't add else downVect
+        //Vector3 downVect = new Vector3(current.x - 1, current.y, current.z - 1);
+        Vector3 downVect = current + Vector3.back;
+        HashSet<Vector3> downVisited = new HashSet<Vector3> { };
+        if (!(visited.Contains(downVect)))
+        {
+            downVisited = CalculateMoveLimits(downVect, new HashSet<Vector3> { }, limit);
+        }
+        visited.UnionWith(upVisited);
+        visited.UnionWith(downVisited);
+        visited.UnionWith(rightVisited);
+        visited.UnionWith(leftVisited);
+        return visited;
+    }
 
     float ConvertToFloorUnits(float x) {
         if (x < 0) return (int)x - 0.5f;
