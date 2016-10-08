@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class PlayerController : MonoBehaviour {
 
@@ -15,11 +16,13 @@ public class PlayerController : MonoBehaviour {
     Ray camRay;
     bool playerMoving = false;
     Vector3 newPos;
+    LineRenderer myLine;
     public const int playerMoveLimit = 3;
 
     // Use this for initialization
     void Start () {
         player = this.GetComponent<Rigidbody>();
+        myLine = player.gameObject.AddComponent<LineRenderer>();
         mouseHelp = GameObject.FindGameObjectWithTag("WorldUI").GetComponent<RectTransform>();
         mainCam = FindObjectOfType<Camera>();
         //mouseHelp.gameObject.SetActive(false);
@@ -38,6 +41,7 @@ public class PlayerController : MonoBehaviour {
     void Update()
     {
         camRay = mainCam.ScreenPointToRay(Input.mousePosition);
+        List<Vector3> path;
         //If it hits the floor
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
@@ -50,11 +54,18 @@ public class PlayerController : MonoBehaviour {
                 newPos = mousePos1;
                 newPos.y = player.transform.position.y;
                 playerMoving = true;
+                path = FindShortestPath(player.transform.position, mousePos1);
             }
             if(playerMoving)
             {
                 player.transform.position = Vector3.MoveTowards(player.transform.position, newPos, Time.deltaTime * 3f);
                 if (player.transform.position == newPos) playerMoving = false;
+                //Draw the pathfinding line.
+                //print(ManhattanHeuristic(player.transform.position, mousePos1)); 
+                
+                
+                //myLine.numPositions = path.Count;
+                //myLine.SetPositions(path.ToArray());
             }
         }
     }
@@ -118,9 +129,10 @@ public class PlayerController : MonoBehaviour {
         return visited;
     }*/
 
-    LinkedList<Vector3> FindShortestPath(Vector3 start, Vector3 goal, HashSet<Vector3> nodes) {
+    List<Vector3> FindShortestPath(Vector3 start, Vector3 goal) {
         HashSet<Vector3> closedSet = new HashSet<Vector3> {};
         HashSet<Vector3> openSet = new HashSet<Vector3> {start};
+        Vector3[] neighbors = {Vector3.right, Vector3.left, Vector3.forward, Vector3.back};
         //Node -> the node that it can most efficiently be reached from
         Dictionary<Vector3, Vector3> previousNode = new Dictionary<Vector3, Vector3> { };
         //Node -> its distance from start
@@ -131,8 +143,49 @@ public class PlayerController : MonoBehaviour {
         Dictionary<Vector3, float> fScore = new Dictionary<Vector3, float> { };
         fScore[start] = ManhattanHeuristic(start, goal);
         while (openSet.Count != 0) {
-            Vector3 current = fScore.Min<KeyValuePair<Vector3, float>>();
+            //Aggregate - like python map?
+            //first run, this should be start
+            Vector3 current = 
+                fScore.Aggregate((key, nextKey) => key.Value < nextKey.Value ? key : nextKey).Key;
+            if (current == goal)
+            {
+                print("ever exit?");
+                return ReconstructPath(previousNode, current);
+            }
+            openSet.Remove(current);
+            closedSet.Add(current);
+            //how to get neighbor of current
+            Vector3[] currentNeighbors = neighbors.Select(l => l + current).ToArray<Vector3>();
+            foreach(Vector3 neighbor in currentNeighbors) {
+                if (closedSet.Contains(neighbor)) {
+                    continue;
+                }
+                /*float neighborGScore;
+                gScore.TryGetValue(neighbor, out neighborGScore);
+                gScore[neighbor] = neighborGScore == 0f ? 10000 : neighborGScore;*/ 
+                float tentativeGScore = gScore[current] + 1;
+                if (!(openSet.Contains(neighbor)))
+                {
+                    openSet.Add(neighbor);
+                }
+                else if (tentativeGScore >= gScore[neighbor]) {
+                    continue;
+                }
+                previousNode[neighbor] = current;
+                gScore[neighbor] = tentativeGScore;
+                fScore[neighbor] = gScore[neighbor] + ManhattanHeuristic(neighbor, goal);
+            }
         }
+        return null;
+    }
+
+    List<Vector3> ReconstructPath(Dictionary<Vector3, Vector3> previousNode, Vector3 current) {
+        List<Vector3> totalPath = new List<Vector3> { current };
+        while (previousNode.Select((l, r) => l.Key).Contains(current)) {
+            current = previousNode[current];
+            totalPath.Add(current);
+        }
+        return totalPath;
     }
 
     float ManhattanHeuristic(Vector3 node, Vector3 goal) {
