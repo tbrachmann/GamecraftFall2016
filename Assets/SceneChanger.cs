@@ -1,17 +1,20 @@
 ﻿using UnityEngine;
+using UnityEngine.SceneManagement;
 using System.Collections;
 
 public class SceneChanger : MonoBehaviour {
 
 	public string levelToLoad;
 
-	public void StartButtonPress() {
-		Debug.Log ("pressed start button");
-		Application.LoadLevel (levelToLoad);
-	}
+	public void buttonPress() {
+		string button = gameObject.name;
+		if (button == "playButton") {
+			Debug.Log ("pressed start button");
+		}
+		else if (button == "settingsButton") {
+			Debug.Log ("pressed settings");
+		}
 
-	public void SettingsButtonPress() {
-		Debug.Log ("pressed settings button");
-		//Application.LoadLevel (levelToLoad);
+		SceneManager.LoadScene(levelToLoad);
 	}
 }
