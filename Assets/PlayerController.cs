@@ -19,8 +19,6 @@ public class PlayerController : MonoBehaviour, Turn {
     RaycastHit floorPos;
     LinkedList<Vector3> path;
     Ray camRay;
-    List<Vector3> possibleMoves;
-    LineRenderer myLine;
     public const int playerMoveLimit = 3;
 
     //Hack-y code to make sure that Vector3s match up in closedSet
@@ -42,6 +40,21 @@ public class PlayerController : MonoBehaviour, Turn {
     
     // Use this for initialization
     void Start () {
+        //Instantiate myLine and disable it - now only State ReadyToMove
+        //will deal with it.
+        LineRenderer myLine = this.gameObject.GetComponent<LineRenderer>();
+        myLine.startColor = Color.white;
+        myLine.endColor = Color.white;
+        myLine.startWidth = 0.1f;
+        myLine.endWidth = 0.1f;
+        myLine.enabled = false;
+        //Same with drawMoves
+        Image drawMoves = GameObject.Find("PossibleMoves").GetComponentInChildren<Image>();
+        Color myColor = drawMoves.color;
+        myColor.a = 0.5f;
+        drawMoves.color = myColor;
+        drawMoves.enabled = false;
+        //The state to start out in. Waiting for input!
         myState = new WaitingForInput(this);
         player = this.GetComponent<Rigidbody>();
         cursor = GameObject.Find("Cursor").GetComponent<RectTransform>();
@@ -99,6 +112,7 @@ public class PlayerController : MonoBehaviour, Turn {
         Vector3 playerPos;
         LineRenderer myLine;
         LinkedList<Vector3> preparePath;
+        List<Vector3> possibleMoves;
 
         public ReadyToMove(PlayerController controller) : base(controller)
         {
@@ -107,17 +121,11 @@ public class PlayerController : MonoBehaviour, Turn {
         public override void Enter() {
             //This needs to be updated every time we enter this state.
             playerPos = controller.gameObject.GetComponent<Rigidbody>().transform.position;
-            //All code to instantiate the line for path.
-            myLine = controller.gameObject.GetComponent<LineRenderer>();
-            myLine.startColor = Color.white;
-            myLine.endColor = Color.white;
-            myLine.startWidth = 0.1f;
-            myLine.endWidth = 0.1f;
-            myLine.enabled = false;
             //Get the tile that draws the moves (DrawPossibleMoves 
             //will be instantiating this for how many moves there
             //are).
-            drawMoves = GameObject.Find("PossibleMove").GetComponentInChildren<Image>();
+            drawMoves = GameObject.Find("PossibleMoves").GetComponentInChildren<Image>();
+            myLine = controller.gameObject.GetComponent<LineRenderer>();
             Color myColor = drawMoves.color;
             myColor.a = 0.5f;
             drawMoves.color = myColor;
@@ -129,10 +137,11 @@ public class PlayerController : MonoBehaviour, Turn {
         public override void Update() {
             //Position of the cursor. Set by player controller.
             Vector3 cursorPos = controller.cursor.transform.position;
+            possibleMoves = new List<Vector3>(movesUI.Select(l => l.position));
             //Check that the cursor is currently in possible moves.
             //Is this really necessary? We could draw a white line in possible moves
             //and then a red line outside.
-            if (controller.possibleMoves.Contains(cursorPos, new Vector3Comparer())) {
+            if (possibleMoves.Contains(cursorPos, new Vector3Comparer())) {
                 //Keep the line with Y = 0.0001f so that we can easily draw it.
                 Vector3 playerPosToMouse = new Vector3(playerPos.x, cursorPos.y, playerPos.z);
                 preparePath = FindShortestPath(playerPosToMouse, cursorPos);
@@ -144,9 +153,9 @@ public class PlayerController : MonoBehaviour, Turn {
             //put path into player Y units?
             controller.path = new LinkedList<Vector3>(preparePath.Select(l => new Vector3(l.x, playerPos.y, l.z)));
             //Share the line with player so that the next state can access it.
-            controller.myLine = myLine;
-            //Turn off possible movement grid.
+            //Turn off possible movement grid and path line.
             RemovePossibleMoves();
+            myLine.enabled = false;
         }
 
         public override PlayerState HandleInput()
@@ -163,9 +172,8 @@ public class PlayerController : MonoBehaviour, Turn {
         void DrawPath()
         {
             myLine.enabled = true;
-            myLine.numPositions = controller.path.Count;
-            //myLine.SetPositions(controller.path.Select(l => new Vector3(l.x, 0.001f, l.z)).ToArray());
-            myLine.SetPositions(controller.path.ToArray());
+            myLine.numPositions = preparePath.Count;
+            myLine.SetPositions(preparePath.Select(l => new Vector3(l.x, 0.01f, l.z)).ToArray());
         }
 
         private void DrawPossibleMoves()
@@ -184,6 +192,7 @@ public class PlayerController : MonoBehaviour, Turn {
                 moveSquare.transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
                 movesUI.Add(moveSquare);
             }
+            drawMoves.enabled = false;
         }
 
         void RemovePossibleMoves()
@@ -193,6 +202,8 @@ public class PlayerController : MonoBehaviour, Turn {
                 Destroy(r.gameObject);
             }
             movesUI.Clear();
+            possibleMoves.Clear();
+            //drawMoves.enabled = false;
         }
 
         //Find the shortest path to follow to goal.
@@ -362,14 +373,15 @@ public class PlayerController : MonoBehaviour, Turn {
         public override void Enter()
         {
             player = controller.gameObject.GetComponent<Rigidbody>().transform;
-            myLine = controller.myLine;
+            myLine = controller.gameObject.GetComponent<LineRenderer>();
+            myLine.enabled = true;
             myPath = controller.path;
             nextPos = myPath.First;
         }
 
         public override void Exit()
         {
-            controller.myLine.enabled = false;
+            myLine.enabled = false;
         }
 
         public override void Update()
