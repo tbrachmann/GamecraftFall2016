@@ -224,7 +224,6 @@ public class PlayerController : MonoBehaviour, Turn {
             //default value of infinity
             Dictionary<Vector3, float> fScore = new Dictionary<Vector3, float> { };
             fScore[start] = ManhattanHeuristic(start, goal);
-            //while(i < 4) {
             while (openSet.Count != 0)
             {
                 //Aggregate - like python map? - was so proud of this but it turned out to be useless
@@ -246,6 +245,8 @@ public class PlayerController : MonoBehaviour, Turn {
                     closedString = closedString + " " + v;
                 }
                 //print(closedString);
+                //When implementing obstacles, just need to check if each neighbor is valid:
+                //if its traversable or not
                 Vector3[] currentNeighbors = neighbors.Select(l => l + current).ToArray<Vector3>();
                 foreach (Vector3 neighbor in currentNeighbors)
                 {
