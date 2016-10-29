@@ -8,7 +8,7 @@ public class TileMap : MonoBehaviour {
 	public int size_x = 10;
 	public int size_z = 5;
 	public float tileSize = 1.0f;
-	Dictionary<Tile.TileCoords, Tile> myTiles = new Dictionary<Tile.TileCoords, Tile>();
+	Dictionary<TileCoords, Tile> myTiles = new Dictionary<TileCoords, Tile>();
 
 	// Use this for initialization
 	void Start () {
@@ -57,7 +57,7 @@ public class TileMap : MonoBehaviour {
 				triangles[triOffset + 3] = z * vsize_x + x + 		   0;
 				triangles[triOffset + 4] = z * vsize_x + x + vsize_x + 1;
 				triangles[triOffset + 5] = z * vsize_x + x + 		   1;
-				Tile.TileCoords newCoords = new Tile.TileCoords(x, z);
+				TileCoords newCoords = new TileCoords(x, z);
 				myTiles.Add(newCoords, new FloorTile(newCoords));
 			}
 		}
@@ -98,8 +98,15 @@ public class TileMap : MonoBehaviour {
 		mesh_collider.sharedMesh = mesh;
 	}
 
+    public Tile getTile(TileCoords coords) {
+        return myTiles[coords];
+    }
+
+    //tileMap can only interface with TileCoords?
+    //outside static method to convert to tileCoords?
 	public Tile getTile(Vector3 vector){
-		Tile.TileCoords coords = new Tile.TileCoords((int)vector.x, (int)vector.z);
+		TileCoords coords = new TileCoords(Mathf.FloorToInt(vector.x), Mathf.FloorToInt(vector.z));
+        print(coords.x + ", " +  coords.z);
 		return myTiles[coords];
 	}
 

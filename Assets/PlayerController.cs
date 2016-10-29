@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class PlayerController : MonoBehaviour, Turn {
 
     Rigidbody player;
-    RectTransform cursor;
+    Transform cursor;
     PlayerState myState;
     public GameObject TileMapObj;
     TileMap myTileMap;
@@ -58,11 +58,8 @@ public class PlayerController : MonoBehaviour, Turn {
         //The state to start out in. Waiting for input!
         myState = new WaitingForInput(this);
         player = this.GetComponent<Rigidbody>();
-        cursor = GameObject.Find("Cursor").GetComponent<RectTransform>();
+        cursor = GameObject.Find("CursorHelper").GetComponent<Transform>();
         mainCam = FindObjectOfType<Camera>();
-        //mainCam = GameObject.FindGameObjectsWithTag("MainCamera");
-        //print(mainCam);
-        //mouseHelp.gameObject.SetActive(false);
         
     }
 
@@ -78,7 +75,10 @@ public class PlayerController : MonoBehaviour, Turn {
         {
             //mouseHelp.gameObject.SetActive(true);
             //cursor.transform.position = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
-            cursor.transform.position = myTileMap.getTile(TileMapObj.transform.InverseTransformPoint(cursor.transform.position)).coordsToVector3();
+            //print(floorPos.point);
+            //print(TileMapObj.transform.InverseTransformPoint(floorPos.point));
+            cursor.transform.position = myTileMap.getTile(TileMapObj.transform.InverseTransformPoint(floorPos.point)).coordsToVector3();
+            print(cursor.transform.position);
         }
         myState.Update();
         if (Input.anyKeyDown || stateFinished) {
@@ -108,30 +108,38 @@ public class PlayerController : MonoBehaviour, Turn {
     {
         //The list of tiles drawn on the board to show possible moves.
         //Y is 0.0001f
-        List<RectTransform> movesUI = new List<RectTransform>();
+        List<GameObject> movesUI = new List<GameObject>();
         //The tile to instantiate when drawing moves.
-        Image drawMoves;
+        GameObject drawMovesHelper;
+        GameObject drawMoves;
+        Image drawMovesImage;
         Vector3 playerPos;
         LineRenderer myLine;
         LinkedList<Vector3> preparePath;
         List<Vector3> possibleMoves;
+        Tile playerTile;
+        TileMap myTileMap;
 
         public ReadyToMove(PlayerController controller) : base(controller)
         {
         }
 
         public override void Enter() {
+            myTileMap = controller.myTileMap;
+            playerTile = myTileMap.getTile(controller.gameObject.GetComponent<Rigidbody>().transform.position);
             //This needs to be updated every time we enter this state.
-            playerPos = controller.gameObject.GetComponent<Rigidbody>().transform.position;
+            //playerPos = controller.gameObject.GetComponent<Rigidbody>().transform.position;
             //Get the tile that draws the moves (DrawPossibleMoves 
             //will be instantiating this for how many moves there
             //are).
-            drawMoves = GameObject.Find("PossibleMoves").GetComponentInChildren<Image>();
+            drawMovesHelper = GameObject.Find("DrawMovesHelper");
+            drawMoves = drawMovesHelper.GetComponentInChildren<GameObject>();
+            drawMovesImage = drawMoves.GetComponentInChildren<Image>();
             myLine = controller.gameObject.GetComponent<LineRenderer>();
-            Color myColor = drawMoves.color;
+            Color myColor = drawMovesImage.color;
             myColor.a = 0.5f;
-            drawMoves.color = myColor;
-            drawMoves.enabled = false;
+            drawMovesImage.color = myColor;
+            drawMoves.SetActive(false);
             //Draw the moves.
             DrawPossibleMoves();
         }
@@ -139,6 +147,8 @@ public class PlayerController : MonoBehaviour, Turn {
         public override void Update() {
             //Position of the cursor. Set by player controller.
             Vector3 cursorPos = controller.cursor.transform.position;
+            //this isn't really efficient though - instantiating and deleting game objects
+            //we'll leave it as it is right now though, because its well-controlled
             possibleMoves = new List<Vector3>(movesUI.Select(l => l.position));
             //Check that the cursor is currently in possible moves.
             //Is this really necessary? We could draw a white line in possible moves
@@ -180,21 +190,23 @@ public class PlayerController : MonoBehaviour, Turn {
 
         private void DrawPossibleMoves()
         {
-            drawMoves.enabled = true;
-            RectTransform imagePos = drawMoves.canvas.GetComponent<RectTransform>();
-            HashSet<Vector3> returnList = CalculateMoveLimits(playerPos, new HashSet<Vector3>(new Vector3Comparer()) { });
-            IEnumerator<Vector3> myEnumerator = returnList.GetEnumerator();
+            drawMoves.SetActive(true);
+            //RectTransform imagePos = drawMoves.canvas.GetComponent<RectTransform>();
+            HashSet<Tile> returnList = CalculateMoveLimits(playerTile, new HashSet<Tile>());
+            IEnumerator<Tile> myEnumerator = returnList.GetEnumerator();
             //(returnList.Count);
             //((RectTransform)Object.Instantiate(mouseHelp)).transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
             //instantiate all possible moves and then go through list and enable
             while (myEnumerator.MoveNext())
             {
                 //print(returnList[i]);
-                RectTransform moveSquare = ((RectTransform)UnityEngine.Object.Instantiate(imagePos));
-                moveSquare.transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
+                TileCoords currentCoords = myEnumerator.Current.getCoords();
+                GameObject moveSquare = GameObject.Instantiate(drawMoves, drawMovesHelper.transform);
+                //RectTransform moveSquare = ((RectTransform)UnityEngine.Object.Instantiate(imagePos));
+                moveSquare.transform.position = new Vector3(currentCoords.x, 0.0001f, currentCoords.z);
                 movesUI.Add(moveSquare);
             }
-            drawMoves.enabled = false;
+            drawMoves.SetActive(false);
         }
 
         void RemovePossibleMoves()
@@ -309,7 +321,7 @@ public class PlayerController : MonoBehaviour, Turn {
 
         /*Use this to find all available moves, taking movelimits into account. Can we pre-bake this into the coming A* 
          * algorithm to make sure that it only selects from available moves?*/
-        HashSet<Vector3> CalculateMoveLimits(Vector3 current, HashSet<Vector3> visited, int limit = playerMoveLimit)
+        HashSet<Tile> CalculateMoveLimits(Tile current, HashSet<Tile> visited, int limit = playerMoveLimit)
         {
             if (limit == 0)
             {
@@ -319,40 +331,40 @@ public class PlayerController : MonoBehaviour, Turn {
             visited.Add(current);
             limit -= 1;
             //if right in visited - don't add else rightVect
-            //Vector3 rightVect = new Vector3(current.x + 1, current.y, current.z);
-            Vector3 rightVect = current + Vector3.right;
-            HashSet<Vector3> rightVisited = new HashSet<Vector3>() { };
+            //Tile rightVect = new Tile(current.x + 1, current.y, current.z);
+            Tile rightTile = myTileMap.getTile(current.getCoords() + TileCoords.right);
+            HashSet<Tile> rightVisited = new HashSet<Tile>() { };
             rightVisited.UnionWith(visited);
-            if (!(visited.Contains(rightVect)))
+            if (!(visited.Contains(rightTile)))
             {
-                rightVisited = CalculateMoveLimits(rightVect, rightVisited, limit);
+                rightVisited = CalculateMoveLimits(rightTile, rightVisited, limit);
             }
             //if left in visited - don't add else leftVect
-            //Vector3 leftVect = new Vector3(current.x, current.y, current.z + 1);
-            Vector3 leftVect = current + Vector3.left;
-            HashSet<Vector3> leftVisited = new HashSet<Vector3>() { };
+            //Tile leftVect = new Tile(current.x, current.y, current.z + 1);
+            Tile leftTile = myTileMap.getTile(current.getCoords() + TileCoords.left);
+            HashSet<Tile> leftVisited = new HashSet<Tile>() { };
             leftVisited.UnionWith(visited);
-            if (!(visited.Contains(leftVect)))
+            if (!(visited.Contains(leftTile)))
             {
-                leftVisited = CalculateMoveLimits(leftVect, leftVisited, limit);
+                leftVisited = CalculateMoveLimits(leftTile, leftVisited, limit);
             }
             //if up in visited - don't add else upVect
-            //Vector3 upVect = new Vector3(current.x + 1, current.y, current.z + 1);
-            Vector3 upVect = current + Vector3.forward;
-            HashSet<Vector3> upVisited = new HashSet<Vector3>() { };
+            //Tile upVect = new Tile(current.x + 1, current.y, current.z + 1);
+            Tile upTile = myTileMap.getTile(current.getCoords() + TileCoords.forward);
+            HashSet<Tile> upVisited = new HashSet<Tile>() { };
             upVisited.UnionWith(visited);
-            if (!(visited.Contains(upVect)))
+            if (!(visited.Contains(upTile)))
             {
-                upVisited = CalculateMoveLimits(upVect, upVisited, limit);
+                upVisited = CalculateMoveLimits(upTile, upVisited, limit);
             }
             //if down in visited - don't add else downVect
-            //Vector3 downVect = new Vector3(current.x - 1, current.y, current.z - 1);
-            Vector3 downVect = current + Vector3.back;
-            HashSet<Vector3> downVisited = new HashSet<Vector3>() { };
+            //Tile downVect = new Tile(current.x - 1, current.y, current.z - 1);
+            Tile downTile = myTileMap.getTile(current.getCoords() + TileCoords.back);
+            HashSet<Tile> downVisited = new HashSet<Tile>() { };
             downVisited.UnionWith(visited);
-            if (!(visited.Contains(downVect)))
+            if (!(visited.Contains(downTile)))
             {
-                downVisited = CalculateMoveLimits(downVect, downVisited, limit);
+                downVisited = CalculateMoveLimits(downTile, downVisited, limit);
             }
             visited.UnionWith(upVisited);
             visited.UnionWith(downVisited);

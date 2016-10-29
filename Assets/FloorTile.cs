@@ -10,7 +10,7 @@ public class FloorTile : Tile
 	/*public FloorTile() : base(Tile.TileType.Floor)
 	{}*/
 
-	public FloorTile(Tile.TileCoords coords) : base(coords, Tile.TileType.Floor)
+	public FloorTile(TileCoords coords) : base(coords, Tile.TileType.Floor)
 	{}
 
 }
