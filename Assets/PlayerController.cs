@@ -1,15 +1,15 @@
-﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Linq;
-using System;
 
 public class PlayerController : MonoBehaviour, Turn {
 
     Rigidbody player;
     RectTransform cursor;
     PlayerState myState;
+    public GameObject TileMapObj;
+    TileMap myTileMap;
     //Flag for a finished state if it doesn't end on input.
     bool stateFinished = false;
 
@@ -40,6 +40,7 @@ public class PlayerController : MonoBehaviour, Turn {
     
     // Use this for initialization
     void Start () {
+        myTileMap = (TileMap) TileMapObj.GetComponent("TileMap");
         //Instantiate myLine and disable it - now only State ReadyToMove
         //will deal with it.
         LineRenderer myLine = this.gameObject.GetComponent<LineRenderer>();
@@ -76,7 +77,8 @@ public class PlayerController : MonoBehaviour, Turn {
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
             //mouseHelp.gameObject.SetActive(true);
-            cursor.transform.position = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
+            //cursor.transform.position = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
+            cursor.transform.position = myTileMap.getTile(TileMapObj.transform.InverseTransformPoint(cursor.transform.position)).coordsToVector3();
         }
         myState.Update();
         if (Input.anyKeyDown || stateFinished) {
@@ -224,7 +226,6 @@ public class PlayerController : MonoBehaviour, Turn {
             //default value of infinity
             Dictionary<Vector3, float> fScore = new Dictionary<Vector3, float> { };
             fScore[start] = ManhattanHeuristic(start, goal);
-            //while(i < 4) {
             while (openSet.Count != 0)
             {
                 //Aggregate - like python map? - was so proud of this but it turned out to be useless
@@ -246,6 +247,8 @@ public class PlayerController : MonoBehaviour, Turn {
                     closedString = closedString + " " + v;
                 }
                 //print(closedString);
+                //When implementing obstacles, just need to check if each neighbor is valid:
+                //if its traversable or not
                 Vector3[] currentNeighbors = neighbors.Select(l => l + current).ToArray<Vector3>();
                 foreach (Vector3 neighbor in currentNeighbors)
                 {
