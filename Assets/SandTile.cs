@@ -5,9 +5,9 @@ using UnityEngine.UI;
 using System.Linq;
 using System;
 
-public class SandTile : Tile
+/*public class SandTile : Tile
 {
     public SandTile() : base(Tile.TileType.Sand) {
 
     }
-}
+}*/

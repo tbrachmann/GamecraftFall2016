@@ -10,13 +10,34 @@ public abstract class Tile
 {
     //enum my tile type
     //maybe enums should go into the same file?
-    public enum TileType {Sand, Rock, Grass, Water};
+    public struct TileCoords {
+        public TileCoords(int x, int z){
+            this.x = x;
+            this.z = z;
+        }
+        public int x;
+        public int z;
+    }
+    public enum TileType {Sand, Rock, Grass, Water, Obstacle, Floor};
     protected TileType myType;
+    protected TileCoords myCoords;
 
-    protected Tile(TileType type) {
+    protected Tile(TileCoords coords, TileType type) {
         myType = type;
+        myCoords = coords;
     }
 
+    /*public Tile(TileCoords coords){
+        myCoords = coords;
+    }*/
+
+    public virtual TileCoords getCoords(){
+        return myCoords;
+    }
+
+    public virtual Vector3 coordsToVector3(){
+        return new Vector3(myCoords.x, 0, myCoords.z);
+    }
     //my center coords
     //my movement cost
     //IF you can save neighbors, that means that you must generate tile map in script beforehand

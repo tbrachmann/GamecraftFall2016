@@ -1,15 +1,15 @@
-﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using System.Linq;
-using System;
 
 public class PlayerController : MonoBehaviour, Turn {
 
     Rigidbody player;
     RectTransform cursor;
     PlayerState myState;
+    public GameObject TileMapObj;
+    TileMap myTileMap;
     //Flag for a finished state if it doesn't end on input.
     bool stateFinished = false;
 
@@ -40,6 +40,7 @@ public class PlayerController : MonoBehaviour, Turn {
     
     // Use this for initialization
     void Start () {
+        myTileMap = (TileMap) TileMapObj.GetComponent("TileMap");
         //Instantiate myLine and disable it - now only State ReadyToMove
         //will deal with it.
         LineRenderer myLine = this.gameObject.GetComponent<LineRenderer>();
@@ -76,7 +77,8 @@ public class PlayerController : MonoBehaviour, Turn {
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
             //mouseHelp.gameObject.SetActive(true);
-            cursor.transform.position = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
+            //cursor.transform.position = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
+            cursor.transform.position = myTileMap.getTile(TileMapObj.transform.InverseTransformPoint(cursor.transform.position)).coordsToVector3();
         }
         myState.Update();
         if (Input.anyKeyDown || stateFinished) {
