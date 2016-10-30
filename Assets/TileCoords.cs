@@ -24,4 +24,6 @@ public struct TileCoords
     public static TileCoords left = new TileCoords(-1, 0);
     public static TileCoords forward = new TileCoords(0, 1);
     public static TileCoords back = new TileCoords(0, -1);
+
+    //add a getHashCode()
 }

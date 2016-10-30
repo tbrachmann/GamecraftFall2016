@@ -58,7 +58,11 @@ public class TileMap : MonoBehaviour {
 				triangles[triOffset + 4] = z * vsize_x + x + vsize_x + 1;
 				triangles[triOffset + 5] = z * vsize_x + x + 		   1;
 				TileCoords newCoords = new TileCoords(x, z);
-				myTiles.Add(newCoords, new FloorTile(newCoords));
+				if(x % 2 != 0) {
+					myTiles.Add(newCoords, new Obstacle(newCoords));
+				} else {
+					myTiles.Add(newCoords, new FloorTile(newCoords));
+				}
 			}
 		}
 		/*for(x=0; x < vsize_x; x++){
@@ -99,6 +103,9 @@ public class TileMap : MonoBehaviour {
 	}
 
     public Tile getTile(TileCoords coords) {
+        if(!myTiles.ContainsKey(coords)){
+        	return null;
+        }
         return myTiles[coords];
     }
 
@@ -106,7 +113,7 @@ public class TileMap : MonoBehaviour {
     //outside static method to convert to tileCoords?
 	public Tile getTile(Vector3 vector){
 		TileCoords coords = new TileCoords(Mathf.FloorToInt(vector.x), Mathf.FloorToInt(vector.z));
-        print(coords.x + ", " +  coords.z);
+        //print(coords.x + ", " +  coords.z);
 		return myTiles[coords];
 	}
 

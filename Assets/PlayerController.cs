@@ -49,12 +49,15 @@ public class PlayerController : MonoBehaviour, Turn {
         myLine.startWidth = 0.1f;
         myLine.endWidth = 0.1f;
         myLine.enabled = false;
+        Image drawMovesImage = GameObject.Find("DrawMovesHelper").GetComponentInChildren<RectTransform>().
+            GetComponentInChildren<Image>();
+        drawMovesImage.enabled = false;
         //Same with drawMoves
-        Image drawMoves = GameObject.Find("PossibleMoves").GetComponentInChildren<Image>();
+        /*Image drawMoves = GameObject.Find("PossibleMoves").GetComponentInChildren<Image>();
         Color myColor = drawMoves.color;
         myColor.a = 0.5f;
         drawMoves.color = myColor;
-        drawMoves.enabled = false;
+        drawMoves.enabled = false;*/
         //The state to start out in. Waiting for input!
         myState = new WaitingForInput(this);
         player = this.GetComponent<Rigidbody>();
@@ -77,8 +80,8 @@ public class PlayerController : MonoBehaviour, Turn {
             //cursor.transform.position = new Vector3(ConvertToFloorUnits(floorPos.point.x), 0.0001f, ConvertToFloorUnits(floorPos.point.z));
             //print(floorPos.point);
             //print(TileMapObj.transform.InverseTransformPoint(floorPos.point));
-            cursor.transform.position = myTileMap.getTile(TileMapObj.transform.InverseTransformPoint(floorPos.point)).coordsToVector3();
-            print(cursor.transform.position);
+            cursor.position = myTileMap.getTile(TileMapObj.transform.InverseTransformPoint(floorPos.point)).coordsToVector3();
+            //print(cursor.transform.position);
         }
         myState.Update();
         if (Input.anyKeyDown || stateFinished) {
@@ -116,8 +119,9 @@ public class PlayerController : MonoBehaviour, Turn {
         Vector3 playerPos;
         LineRenderer myLine;
         LinkedList<Vector3> preparePath;
-        List<Vector3> possibleMoves;
+        List<Tile> possibleMoves;
         Tile playerTile;
+        //Tile cursorTile;
         TileMap myTileMap;
 
         public ReadyToMove(PlayerController controller) : base(controller)
@@ -133,8 +137,10 @@ public class PlayerController : MonoBehaviour, Turn {
             //will be instantiating this for how many moves there
             //are).
             drawMovesHelper = GameObject.Find("DrawMovesHelper");
-            drawMoves = drawMovesHelper.GetComponentInChildren<GameObject>();
+            drawMoves = drawMovesHelper.GetComponentInChildren<RectTransform>().gameObject;
+            drawMoves.SetActive(false);
             drawMovesImage = drawMoves.GetComponentInChildren<Image>();
+            drawMovesImage.enabled = true;
             myLine = controller.gameObject.GetComponent<LineRenderer>();
             Color myColor = drawMovesImage.color;
             myColor.a = 0.5f;
@@ -146,19 +152,20 @@ public class PlayerController : MonoBehaviour, Turn {
         
         public override void Update() {
             //Position of the cursor. Set by player controller.
-            Vector3 cursorPos = controller.cursor.transform.position;
+            //Vector3 cursorPos = controller.cursor.transform.position;
+            Tile cursorTile = myTileMap.getTile(controller.cursor.position);
             //this isn't really efficient though - instantiating and deleting game objects
             //we'll leave it as it is right now though, because its well-controlled
-            possibleMoves = new List<Vector3>(movesUI.Select(l => l.position));
+            //possibleMoves = new List<Tile>(movesUI.Select(l => l.position));
             //Check that the cursor is currently in possible moves.
             //Is this really necessary? We could draw a white line in possible moves
             //and then a red line outside.
-            if (possibleMoves.Contains(cursorPos, new Vector3Comparer())) {
+            /*if (possibleMoves.Contains(cursorTile)) {
                 //Keep the line with Y = 0.0001f so that we can easily draw it.
                 Vector3 playerPosToMouse = new Vector3(playerPos.x, cursorPos.y, playerPos.z);
                 preparePath = FindShortestPath(playerPosToMouse, cursorPos);
                 DrawPath();
-            }
+            }*/
         }
 
         public override void Exit() {
@@ -192,8 +199,8 @@ public class PlayerController : MonoBehaviour, Turn {
         {
             drawMoves.SetActive(true);
             //RectTransform imagePos = drawMoves.canvas.GetComponent<RectTransform>();
-            HashSet<Tile> returnList = CalculateMoveLimits(playerTile, new HashSet<Tile>());
-            IEnumerator<Tile> myEnumerator = returnList.GetEnumerator();
+            possibleMoves = CalculateMoveLimits(playerTile, new HashSet<Tile>()).ToList();
+            IEnumerator<Tile> myEnumerator = possibleMoves.GetEnumerator();
             //(returnList.Count);
             //((RectTransform)Object.Instantiate(mouseHelp)).transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
             //instantiate all possible moves and then go through list and enable
@@ -203,7 +210,8 @@ public class PlayerController : MonoBehaviour, Turn {
                 TileCoords currentCoords = myEnumerator.Current.getCoords();
                 GameObject moveSquare = GameObject.Instantiate(drawMoves, drawMovesHelper.transform);
                 //RectTransform moveSquare = ((RectTransform)UnityEngine.Object.Instantiate(imagePos));
-                moveSquare.transform.position = new Vector3(currentCoords.x, 0.0001f, currentCoords.z);
+                //drawMovesHelper.transform.InverseTransformPoint(new Vector3(currentCoords.x, 0.0001f, currentCoords.z);)
+                moveSquare.transform.position = new Vector3(currentCoords.x + 0.5f, 0.0001f, currentCoords.z + 0.5f);
                 movesUI.Add(moveSquare);
             }
             drawMoves.SetActive(false);
@@ -211,9 +219,9 @@ public class PlayerController : MonoBehaviour, Turn {
 
         void RemovePossibleMoves()
         {
-            foreach (RectTransform r in movesUI)
+            foreach (GameObject r in movesUI)
             {
-                Destroy(r.gameObject);
+                Destroy(r);
             }
             movesUI.Clear();
             possibleMoves.Clear();
@@ -332,44 +340,61 @@ public class PlayerController : MonoBehaviour, Turn {
             limit -= 1;
             //if right in visited - don't add else rightVect
             //Tile rightVect = new Tile(current.x + 1, current.y, current.z);
+            HashSet<Tile> rightVisited = null;
+            HashSet<Tile> leftVisited = null;
+            HashSet<Tile> upVisited = null;
+            HashSet<Tile> downVisited = null;
+            //also check if each new tile is traversable or not
             Tile rightTile = myTileMap.getTile(current.getCoords() + TileCoords.right);
-            HashSet<Tile> rightVisited = new HashSet<Tile>() { };
-            rightVisited.UnionWith(visited);
-            if (!(visited.Contains(rightTile)))
-            {
-                rightVisited = CalculateMoveLimits(rightTile, rightVisited, limit);
+            if(rightTile != null && rightTile.isTraversable()){
+                rightVisited = new HashSet<Tile>() { };
+                rightVisited.UnionWith(visited);
+                if (!(visited.Contains(rightTile)))
+                {
+                    rightVisited = CalculateMoveLimits(rightTile, rightVisited, limit);
+                }
+                
             }
             //if left in visited - don't add else leftVect
             //Tile leftVect = new Tile(current.x, current.y, current.z + 1);
             Tile leftTile = myTileMap.getTile(current.getCoords() + TileCoords.left);
-            HashSet<Tile> leftVisited = new HashSet<Tile>() { };
-            leftVisited.UnionWith(visited);
-            if (!(visited.Contains(leftTile)))
-            {
-                leftVisited = CalculateMoveLimits(leftTile, leftVisited, limit);
+            if(leftTile != null && leftTile.isTraversable()) {
+                leftVisited = new HashSet<Tile>() { };
+                leftVisited.UnionWith(visited);
+                if (!(visited.Contains(leftTile)))
+                {
+                    leftVisited = CalculateMoveLimits(leftTile, leftVisited, limit);
+                }
+                
             }
             //if up in visited - don't add else upVect
             //Tile upVect = new Tile(current.x + 1, current.y, current.z + 1);
             Tile upTile = myTileMap.getTile(current.getCoords() + TileCoords.forward);
-            HashSet<Tile> upVisited = new HashSet<Tile>() { };
-            upVisited.UnionWith(visited);
-            if (!(visited.Contains(upTile)))
-            {
-                upVisited = CalculateMoveLimits(upTile, upVisited, limit);
+            if(upTile != null && upTile.isTraversable()){
+                upVisited = new HashSet<Tile>() { };
+                upVisited.UnionWith(visited);
+                if (!(visited.Contains(upTile)))
+                {
+                    upVisited = CalculateMoveLimits(upTile, upVisited, limit);
+                }
+                
             }
             //if down in visited - don't add else downVect
             //Tile downVect = new Tile(current.x - 1, current.y, current.z - 1);
             Tile downTile = myTileMap.getTile(current.getCoords() + TileCoords.back);
-            HashSet<Tile> downVisited = new HashSet<Tile>() { };
-            downVisited.UnionWith(visited);
-            if (!(visited.Contains(downTile)))
-            {
-                downVisited = CalculateMoveLimits(downTile, downVisited, limit);
-            }
-            visited.UnionWith(upVisited);
-            visited.UnionWith(downVisited);
-            visited.UnionWith(rightVisited);
-            visited.UnionWith(leftVisited);
+            if(downTile != null && downTile.isTraversable()) {
+                downVisited = new HashSet<Tile>() { };
+                downVisited.UnionWith(visited);
+                if (!(visited.Contains(downTile)))
+                {
+                    downVisited = CalculateMoveLimits(downTile, downVisited, limit);
+                } 
+                
+            } 
+            if(rightVisited != null) visited.UnionWith(rightVisited);
+            if(leftVisited != null) visited.UnionWith(leftVisited);
+            if(upVisited != null) visited.UnionWith(upVisited);
+            if(downVisited != null) visited.UnionWith(downVisited);
             return visited;
         }
     }
