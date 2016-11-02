@@ -4,6 +4,38 @@
 		"selected_items":
 		[
 			[
+				"Inver",
+				"InverseTransformPoint(Vector3 position)\tVector3"
+			],
+			[
+				"draw",
+				"drawMovesHelper\tGameObject"
+			],
+			[
+				"GetCompon",
+				"GetComponentInChildren<T>()\tT"
+			],
+			[
+				"my",
+				"myTileMap\tTileMap"
+			],
+			[
+				"Equals",
+				"Equals(Tile other)\tbool"
+			],
+			[
+				"other",
+				"otherType\tTileType"
+			],
+			[
+				"to",
+				"ToList()\tList<TSource>"
+			],
+			[
+				"cont",
+				"controller\tPlayerController"
+			],
+			[
 				"Tile",
 				"TileMap\tTileMap"
 			],
@@ -103,17 +135,39 @@
 			"file": "Assets/PlayerController.cs",
 			"settings":
 			{
-				"buffer_size": 17462,
+				"buffer_size": 19512,
 				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
 		},
 		{
-			"file": "Assets/Tile.cs",
+			"contents": "using System.Collections;\nusing System.Collections.Generic;\nusing UnityEngine;\nusing System.Linq;\n\npublic class PriorityQueue : LinkedList<Tile>, ICollection<Tile>\n{\n    public PriorityQueue() : base() { }\n    public PriorityQueue(IEnumerable<Tile> val) : base(val) { }\n\n    public LinkedListNode<Tile> AddToQueue(Tile node, Dictionary<Tile, float> fScore){\n        if (this.Contains(node)) {\n            return null;\n        }\n        LinkedListNode<Tile> current = this.First;\n        //if this queue has no values yet\n        if (current == null) {\n            return this.AddFirst(node);\n        }\n        //LinkedListNode<Vector3> next = current.Next;\n        float newNodeFScore = fScore[node];\n        while (current != null) {\n            if (newNodeFScore < fScore[current.Value]) {\n                return this.AddBefore(current, node);\n            }\n            current = current.Next;\n        }\n        return this.AddLast(node);\n    }\n\n}\n",
+			"file": "Assets/PriorityQueue.cs",
+			"file_size": 1005,
+			"file_write_time": 131204418889471699,
 			"settings":
 			{
-				"buffer_size": 1117,
-				"encoding": "UTF-8 with BOM",
+				"buffer_size": 950,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "using System.Collections;\r\nusing System.Collections.Generic;\r\nusing UnityEngine;\r\nusing UnityEngine.UI;\r\nusing System.Linq;\r\nusing System;\r\n\r\n\r\npublic abstract class Tile : IEquatable<Tile>\r\n{\r\n    //enum my tile type\r\n    //maybe enums should go into the same file?\r\n    public enum TileType {Sand, Rock, Grass, Water, Obstacle, Floor};\r\n    protected TileType myType;\r\n    protected TileCoords myCoords;\r\n    protected bool traversable = true;\r\n\r\n    protected Tile(TileCoords coords, TileType type) {\r\n        myType = type;\r\n        myCoords = coords;\r\n    }\r\n\r\n    /*public Tile(TileCoords coords){\r\n        myCoords = coords;\r\n    }*/\r\n\r\n    public virtual TileCoords getCoords(){\r\n        return myCoords;\r\n    }\r\n\r\n    public virtual Tile.TileType getType(){\r\n        return myType;\r\n    }\r\n\r\n    public virtual bool isTraversable() {\r\n        return traversable;\r\n    }\r\n\r\n    public virtual Tile coordsToVector3(){\r\n        return new Tile(myCoords.x, 0, myCoords.z);\r\n    }\r\n\r\n    public bool Equals(Tile other){\r\n        if(other == null){\r\n            return false;\r\n        }\r\n        Tile.TileType otherType = other.getType();\r\n        TileCoords otherCoords = other.getCoords();\r\n        return myCoords.x == otherCoords.x && myCoords.z == otherCoords.z && myType == otherType;\r\n    }\r\n\r\n    public override bool Equals(System.Object obj){\r\n        if(obj == null) {\r\n            return false;\r\n        }\r\n        Tile tileObj = obj as Tile;\r\n        if(tileObj == null){\r\n            return false;\r\n        } else {\r\n            return Equals(tileObj);\r\n        }\r\n    }\r\n\r\n    public override int GetHashCode(){\n        result = 31 * result + myCoords.z;\n        return result;\r\n    }\r\n\r\n\r\n    //my center coords\r\n    //my movement cost\r\n    //IF you can save neighbors, that means that you must generate tile map in script beforehand\r\n    //my neighbors - left right forward backwards\r\n}\r\n",
+			"file": "Assets/Tile.cs",
+			"file_size": 1953,
+			"file_write_time": 131222653395370952,
+			"settings":
+			{
+				"buffer_size": 1908,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "Assets/Obstacle.cs",
+			"settings":
+			{
+				"buffer_size": 335,
+				"encoding": "UTF-8",
 				"line_ending": "Windows"
 			}
 		},
@@ -121,8 +175,17 @@
 			"file": "Assets/FloorTile.cs",
 			"settings":
 			{
-				"buffer_size": 308,
+				"buffer_size": 303,
 				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "Assets/TileCoords.cs",
+			"settings":
+			{
+				"buffer_size": 688,
+				"encoding": "UTF-8 with BOM",
 				"line_ending": "Windows"
 			}
 		},
@@ -139,33 +202,9 @@
 			"file": "Assets/TileMap.cs",
 			"settings":
 			{
-				"buffer_size": 3142,
+				"buffer_size": 3541,
 				"encoding": "UTF-8 with BOM",
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMap.cs",
-			"settings":
-			{
-				"buffer_size": 2162,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMouseOver.cs",
-			"settings":
-			{
-				"buffer_size": 538,
-				"line_ending": "Unix"
-			}
-		},
-		{
-			"file": "/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMapMouse.cs",
-			"settings":
-			{
-				"buffer_size": 898,
-				"line_ending": "Unix"
+				"line_ending": "Windows"
 			}
 		}
 	],
@@ -218,6 +257,9 @@
 	],
 	"file_history":
 	[
+		"/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMapMouse.cs",
+		"/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMouseOver.cs",
+		"/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMap.cs",
 		"/F/Documents/PrototypeFall2016/Assets/SceneChanger.cs",
 		"/F/Documents/PrototypeFall2016/gamecraft_fall_2016.sublime-project",
 		"/F/Documents/PrototypeFall2016/Assets/Turn.cs",
@@ -227,7 +269,7 @@
 	],
 	"find":
 	{
-		"height": 23.0
+		"height": 34.0
 	},
 	"find_in_files":
 	{
@@ -241,6 +283,9 @@
 		"case_sensitive": false,
 		"find_history":
 		[
+			"vector3comparer",
+			"print",
+			"possibleMoves",
 			"project_path:Library",
 			"<path-to-Unity-folder>"
 		],
@@ -262,7 +307,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -271,84 +316,161 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 17462,
+						"buffer_size": 19512,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3073,
-								3073
+								14280,
+								14280
 							]
 						],
 						"settings":
 						{
 							"oops":
 							{
-								"1079,1080": "Parameter name differs in base method declaration",
-								"10973,10987": "Comparison of floating point numbers can be unequal due to the differing precision of the two values.",
-								"11592,11606": "Comparison of floating point numbers can be unequal due to the differing precision of the two values.",
-								"12368,12378": "Parameter can be declared with base type",
-								"12397,12409": "Parameter can be IDictionary",
-								"13334,13341": "Parameter can be ISet",
-								"1381,1385": "'this.' is redundant and can be removed safely.",
-								"13832,13833": "Empty argument list is redundant",
-								"13835,13836": "Empty object or collection initializer is redundant",
-								"14305,14306": "Empty argument list is redundant",
-								"14308,14309": "Empty object or collection initializer is redundant",
-								"14770,14771": "Empty argument list is redundant",
-								"14773,14774": "Empty object or collection initializer is redundant",
-								"15232,15233": "Empty argument list is redundant",
-								"15235,15236": "Empty object or collection initializer is redundant",
-								"17145,17149": "Method 'Exit' has the same with 'Enter'",
-								"17245,17247": "Convert to 'return' statement",
-								"17423,17429": "Method 'Update' has the same with 'Exit'",
-								"1982,1986": "'this.' is redundant and can be removed safely.",
-								"245,255": "'TileMapObj' should start with a lower case letter. (Rule 'Fields')",
-								"3300,3319": "Method 'ConvertToFloorUnits' can be made static.",
-								"3380,3384": "Redundant 'else' keyword",
-								"503,507": "The private field 'path' is never assigned",
-								"546,561": "'playerMoveLimit' should start with an upper case letter. (Rule 'Constant Fields')",
-								"6432,6434": "Convert to 'return' statement",
-								"7086,7087": "Empty object or collection initializer is redundant",
-								"7577,7578": "Type cast is redundant",
-								"7592,7603": "Qualifier is redundant",
-								"8420,8421": "Empty object or collection initializer is redundant",
-								"8496,8497": "Empty argument list is redundant",
-								"8770,8771": "Empty object or collection initializer is redundant",
-								"8960,8961": "Empty object or collection initializer is redundant",
-								"903,909": "Method 'Equals' hides method from outer class",
-								"918,919": "Parameter name differs in base method declaration",
-								"9238,9239": "Empty object or collection initializer is redundant",
-								"929,930": "Parameter name differs in base method declaration"
+								"10187,10188": "Empty object or collection initializer is redundant",
+								"10465,10466": "Empty object or collection initializer is redundant",
+								"1075,1076": "Parameter name differs in base method declaration",
+								"12200,12214": "Comparison of floating point numbers can be unequal due to the differing precision of the two values.",
+								"12819,12833": "Comparison of floating point numbers can be unequal due to the differing precision of the two values.",
+								"13595,13605": "Parameter can be declared with base type",
+								"13624,13636": "Parameter can be IDictionary",
+								"1377,1381": "'this.' is redundant and can be removed safely.",
+								"14552,14559": "Parameter can be ISet",
+								"15370,15371": "Empty argument list is redundant",
+								"15373,15374": "Empty object or collection initializer is redundant",
+								"15966,15967": "Empty argument list is redundant",
+								"15969,15970": "Empty object or collection initializer is redundant",
+								"16549,16550": "Empty argument list is redundant",
+								"16552,16553": "Empty object or collection initializer is redundant",
+								"17134,17135": "Empty argument list is redundant",
+								"17137,17138": "Empty object or collection initializer is redundant",
+								"19195,19199": "Method 'Exit' has the same with 'Enter'",
+								"19295,19297": "Convert to 'return' statement",
+								"19473,19479": "Method 'Update' has the same with 'Exit'",
+								"2174,2178": "'this.' is redundant and can be removed safely.",
+								"241,251": "'TileMapObj' should start with a lower case letter. (Rule 'Fields')",
+								"3495,3514": "Method 'ConvertToFloorUnits' can be made static.",
+								"3575,3579": "Redundant 'else' keyword",
+								"4351,4362": "The private field 'preparePath' is never assigned",
+								"499,503": "The private field 'path' is never assigned",
+								"542,557": "'playerMoveLimit' should start with an upper case letter. (Rule 'Constant Fields')",
+								"5926,5927": "Assignment is redundant",
+								"7397,7399": "Convert to 'return' statement",
+								"8586,8596": "Static method invoked via derived type",
+								"899,905": "Method 'Equals' hides method from outer class",
+								"914,915": "Parameter name differs in base method declaration",
+								"925,926": "Parameter name differs in base method declaration",
+								"9647,9648": "Empty object or collection initializer is redundant",
+								"9723,9724": "Empty argument list is redundant",
+								"9997,9998": "Empty object or collection initializer is redundant"
 							},
 							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
 							"tab_size": 4,
 							"translate_tabs_to_spaces": true
 						},
 						"translation.x": 0.0,
-						"translation.y": 697.0,
+						"translation.y": 3857.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 0,
+					"stack_index": 3,
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "Assets/Tile.cs",
+					"file": "Assets/PriorityQueue.cs",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 1117,
+						"buffer_size": 950,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								807,
-								807
+								118,
+								125
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "Assets/Tile.cs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1908,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1705,
+								1705
+							]
+						],
+						"settings":
+						{
+							"oops":
+							{
+								"0,5": "Using directive is not used by code and can be removed safely.",
+								"101,106": "Using directive is not used by code and can be removed safely.",
+								"1417,1419": "Convert to 'return' statement",
+								"1474,1478": "Redundant 'else' keyword",
+								"1594,1602": "Non-readonly field referenced in 'GetHashCode()'",
+								"1603,1604": "Non-readonly field referenced in 'GetHashCode()'",
+								"1637,1645": "Non-readonly field referenced in 'GetHashCode()'",
+								"1646,1647": "Non-readonly field referenced in 'GetHashCode()'",
+								"26,31": "Using directive is not used by code and can be removed safely.",
+								"648,657": "'getCoords' should start with an upper case letter. (Rule 'Methods')",
+								"726,733": "'getType' should start with an upper case letter. (Rule 'Methods')",
+								"79,84": "Using directive is not used by code and can be removed safely.",
+								"791,804": "'isTraversable' should start with an upper case letter. (Rule 'Methods')",
+								"871,886": "'coordsToVector3' should start with an upper case letter. (Rule 'Methods')"
+							},
+							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "Assets/Obstacle.cs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 335,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								335,
+								335
 							]
 						],
 						"settings":
@@ -359,36 +481,33 @@
 								"101,106": "Using directive is not used by code and can be removed safely.",
 								"120,125": "Using directive is not used by code and can be removed safely.",
 								"26,31": "Using directive is not used by code and can be removed safely.",
-								"770,779": "'getCoords' should start with an upper case letter. (Rule 'Methods')",
-								"79,84": "Using directive is not used by code and can be removed safely.",
-								"842,857": "'coordsToVector3' should start with an upper case letter. (Rule 'Methods')"
+								"60,65": "Using directive is not used by code and can be removed safely.",
+								"79,84": "Using directive is not used by code and can be removed safely."
 							},
-							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
-							"tab_size": 4,
-							"translate_tabs_to_spaces": true
+							"syntax": "Packages/Unity3D/UnityC#.tmLanguage"
 						},
 						"translation.x": 0.0,
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 2,
+					"stack_index": 5,
 					"type": "text"
 				},
 				{
-					"buffer": 2,
+					"buffer": 4,
 					"file": "Assets/FloorTile.cs",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 308,
+						"buffer_size": 303,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								308,
-								308
+								134,
+								134
 							]
 						],
 						"settings":
@@ -412,7 +531,46 @@
 					"type": "text"
 				},
 				{
-					"buffer": 3,
+					"buffer": 5,
+					"file": "Assets/TileCoords.cs",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 688,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								658,
+								658
+							]
+						],
+						"settings":
+						{
+							"oops":
+							{
+								"0,5": "Using directive is not used by code and can be removed safely.",
+								"101,106": "Using directive is not used by code and can be removed safely.",
+								"120,125": "Using directive is not used by code and can be removed safely.",
+								"26,31": "Using directive is not used by code and can be removed safely.",
+								"60,65": "Using directive is not used by code and can be removed safely.",
+								"79,84": "Using directive is not used by code and can be removed safely."
+							},
+							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 6,
+					"type": "text"
+				},
+				{
+					"buffer": 6,
 					"file": "Assets/SandTile.cs",
 					"semi_transient": false,
 					"settings":
@@ -445,24 +603,24 @@
 						"translation.y": 0.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 1,
+					"stack_index": 7,
 					"type": "text"
 				},
 				{
-					"buffer": 4,
+					"buffer": 7,
 					"file": "Assets/TileMap.cs",
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 3142,
+						"buffer_size": 3541,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								3142,
-								3142
+								1186,
+								1186
 							]
 						],
 						"settings":
@@ -470,109 +628,18 @@
 							"oops":
 							{
 								"0,5": "Using directive is not used by code and can be removed safely.",
-								"255,262": "Convert to readonly",
-								"3007,3014": "'getTile' should start with an upper case letter. (Rule 'Methods')"
+								"250,257": "Convert to readonly",
+								"3085,3092": "'getTile' should start with an upper case letter. (Rule 'Methods')",
+								"3122,3124": "Convert to 'return' statement",
+								"3344,3351": "'getTile' should start with an upper case letter. (Rule 'Methods')"
 							},
 							"syntax": "Packages/Unity3D/UnityC#.tmLanguage"
 						},
 						"translation.x": 0.0,
-						"translation.y": 1087.0,
+						"translation.y": 1009.0,
 						"zoom_level": 1.0
 					},
-					"stack_index": 3,
-					"type": "text"
-				}
-			]
-		},
-		{
-			"selected": 2,
-			"sheets":
-			[
-				{
-					"buffer": 5,
-					"file": "/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMap.cs",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 2162,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								894,
-								894
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 192.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 7,
-					"type": "text"
-				},
-				{
-					"buffer": 6,
-					"file": "/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMouseOver.cs",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 538,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 6,
-					"type": "text"
-				},
-				{
-					"buffer": 7,
-					"file": "/C/Users/Tobias/Downloads/tilemap_1/TileMap Tutorial #1/Assets/TileMapMouse.cs",
-					"semi_transient": false,
-					"settings":
-					{
-						"buffer_size": 898,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								0,
-								0
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/Unity3D/UnityC#.tmLanguage",
-							"translate_tabs_to_spaces": false
-						},
-						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"stack_index": 5,
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
@@ -595,18 +662,11 @@
 				0,
 				1,
 				1
-			],
-			[
-				1,
-				0,
-				2,
-				1
 			]
 		],
 		"cols":
 		[
 			0.0,
-			0.938118811881,
 			1.0
 		],
 		"rows":
@@ -626,7 +686,7 @@
 	},
 	"output.variable_get":
 	{
-		"height": 100.0
+		"height": 84.0
 	},
 	"pinned_build_system": "",
 	"project": "gamecraft_fall_2016.sublime-project",
@@ -669,8 +729,8 @@
 	"show_minimap": true,
 	"show_open_files": false,
 	"show_tabs": true,
-	"side_bar_visible": true,
-	"side_bar_width": 150.0,
+	"side_bar_visible": false,
+	"side_bar_width": 119.0,
 	"status_bar_visible": true,
 	"template_settings":
 	{
