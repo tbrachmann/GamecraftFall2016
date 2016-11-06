@@ -8,11 +8,18 @@ public class TileMap : MonoBehaviour {
 	public int size_x = 10;
 	public int size_z = 5;
 	public float tileSize = 1.0f;
+    int tileResolution = 512;
+    public Texture2D myTexture;
+    public Texture2D myNormalMap;
+    Color[] tileTexture;
+    Color[] tileNormalMap;
 	Dictionary<TileCoords, Tile> myTiles = new Dictionary<TileCoords, Tile>();
 
 	// Use this for initialization
 	void Start () {
-		//print("started!");
+        //print("started!");
+        tileTexture = myTexture.GetPixels(0, 0, tileResolution, tileResolution);
+        tileNormalMap = myNormalMap.GetPixels(0, 0, tileResolution, tileResolution);
 		BuildMesh();
 	}
 	
@@ -36,6 +43,7 @@ public class TileMap : MonoBehaviour {
 		int[] triangles = new int[numTriangles * 3];
 
 		//assign vertices
+        //iterate by vertex
 		int x, z;
 		for(z=0; z < vsize_z; z++) {
 			for(x=0; x < vsize_x; x++) {
@@ -44,9 +52,14 @@ public class TileMap : MonoBehaviour {
 				uv[ z * vsize_x + x ] = new Vector2( (float)x / vsize_x, (float)z / vsize_z );
 			}
 		}
-		//Debug.Log ("Done Verts!");
-		
-		for(z=0; z < size_z; z++) {
+        //Debug.Log ("Done Verts!");
+        //iterate by tile
+        int texWidth = size_x * tileResolution;
+        int texHeight = size_z * tileResolution;
+        Texture2D texture = new Texture2D(texWidth, texHeight);
+        Texture2D normalMap = new Texture2D(texWidth, texHeight, TextureFormat.ARGB32, false);
+
+        for (z=0; z < size_z; z++) {
 			for(x=0; x < size_x; x++) {
 				int squareIndex = z * size_x + x;
 				int triOffset = squareIndex * 6;
@@ -58,36 +71,22 @@ public class TileMap : MonoBehaviour {
 				triangles[triOffset + 4] = z * vsize_x + x + vsize_x + 1;
 				triangles[triOffset + 5] = z * vsize_x + x + 		   1;
 				TileCoords newCoords = new TileCoords(x, z);
-				/*if(x % 2 != 0) {
-					myTiles.Add(newCoords, new Obstacle(newCoords));
-				} else {
-					myTiles.Add(newCoords, new FloorTile(newCoords));
-				}*/
 				myTiles.Add(newCoords, new FloorTile(newCoords));
-			}
+                texture.SetPixels(x * tileResolution, z * tileResolution, tileResolution, tileResolution, tileTexture);
+                normalMap.SetPixels(x * tileResolution, z * tileResolution, tileResolution, tileResolution, tileNormalMap);
+            }
 		}
-		/*for(x=0; x < vsize_x; x++){
-			for(z=0; z < vsize_z; z++){
-				vertices[x * vsize_z + z] = new Vector3(x*tileSize, 0, z*tileSize);
-				normals[x * vsize_z + z] = Vector3.up;
-				uv[x * vsize_z + z] = new Vector2((float) x / vsize_x, (float) z / vsize_z);
-			}
-		}
-
-		//assign triangles
-		for(x=0; x < size_x; x++){
-			for(z=0; z < size_z; z++){
-				int squareIndex = x * size_z + z;
-				int triOffset = squareIndex * 6;
-				triangles[triOffset + 0] = x * vsize_z + z + 0;
-				triangles[triOffset + 1] = x * vsize_z + z + vsize_z + 0;
-				triangles[triOffset + 2] = x * vsize_z + z + 1;
-
-				triangles[triOffset + 3] = triangles[triOffset + 1];
-				triangles[triOffset + 4] = x * vsize_z + z + vsize_z + 1;
-				triangles[triOffset + 5] = triangles[triOffset + 2];
-			}
-		}*/
+        //Go over normal map a second time
+        /*Color theColor = new Color();
+        for (x = 0; x < normalMap.width; x++) {
+            for (int y = 0; y < normalMap.height; y++) {
+                theColor.r = normalMap.GetPixel(x, y).g;
+                theColor.g = theColor.r;
+                theColor.b = theColor.r;
+                theColor.a = normalMap.GetPixel(x, y).r;
+                normalMap.SetPixel(x, y, theColor);
+            }
+        }*/
 
 		Mesh mesh = new Mesh();
 		mesh.vertices = vertices;
@@ -101,7 +100,15 @@ public class TileMap : MonoBehaviour {
 
 		mesh_filter.mesh = mesh;
 		mesh_collider.sharedMesh = mesh;
-	}
+
+        texture.filterMode = FilterMode.Point;
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.Apply();
+        normalMap.Apply();
+        mesh_renderer.sharedMaterials[0].mainTexture = texture;
+        mesh_renderer.sharedMaterials[0].EnableKeyword("_NORMALMAP");
+        mesh_renderer.sharedMaterials[0].SetTexture("_BumpMap", normalMap);
+    }
 
     public Tile getTile(TileCoords coords) {
         if(!myTiles.ContainsKey(coords)){
