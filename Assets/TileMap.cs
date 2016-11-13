@@ -5,8 +5,9 @@ using UnityEngine;
 [ExecuteInEditMode]
 public class TileMap : MonoBehaviour {
 
-	public int size_x = 10;
-	public int size_z = 5;
+	//The number of tiles
+	public int size_x = 5;
+	public int size_z = 10;
 	public float tileSize = 1.0f;
     int tileResolution = 512;
     public Texture2D myTexture;
@@ -19,6 +20,7 @@ public class TileMap : MonoBehaviour {
 	void Start () {
         //print("started!");
         tileTexture = myTexture.GetPixels(0, 0, tileResolution, tileResolution);
+        //Debug.Log(tileTexture.Length);
         tileNormalMap = myNormalMap.GetPixels(0, 0, tileResolution, tileResolution);
 		BuildMesh();
 	}
@@ -54,8 +56,9 @@ public class TileMap : MonoBehaviour {
 		}
         //Debug.Log ("Done Verts!");
         //iterate by tile
-        int texWidth = size_x * tileResolution;
-        int texHeight = size_z * tileResolution;
+        int texWidth = size_z * tileResolution;
+        int texHeight = size_x * tileResolution;
+        Debug.Log(texWidth + "x" + texHeight);
         Texture2D texture = new Texture2D(texWidth, texHeight);
         Texture2D normalMap = new Texture2D(texWidth, texHeight, TextureFormat.ARGB32, false);
 
@@ -72,8 +75,9 @@ public class TileMap : MonoBehaviour {
 				triangles[triOffset + 5] = z * vsize_x + x + 		   1;
 				TileCoords newCoords = new TileCoords(x, z);
 				myTiles.Add(newCoords, new FloorTile(newCoords));
-                texture.SetPixels(x * tileResolution, z * tileResolution, tileResolution, tileResolution, tileTexture);
-                normalMap.SetPixels(x * tileResolution, z * tileResolution, tileResolution, tileResolution, tileNormalMap);
+				Debug.Log(z * tileResolution + " X " + x* tileResolution);
+                texture.SetPixels(z * tileResolution, x * tileResolution, tileResolution, tileResolution, tileTexture);
+                normalMap.SetPixels(z * tileResolution, x * tileResolution, tileResolution, tileResolution, tileNormalMap);
             }
 		}
         //Go over normal map a second time

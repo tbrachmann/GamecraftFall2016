@@ -26,4 +26,7 @@ public struct TileCoords
     public static TileCoords back = new TileCoords(0, -1);
 
     //add a getHashCode()
+    public override string ToString() {
+        return "(" + this.x + ", " + this.z + ")";
+    }
 }
