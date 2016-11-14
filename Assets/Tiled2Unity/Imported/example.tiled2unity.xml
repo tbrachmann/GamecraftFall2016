@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <!--Tiled2Unity generated xml data-->
 <!--Do not modify by hand-->
-<!--Last exported: 11/13/2016 3:03:03 PM-->
+<!--Last exported: 11/13/2016 7:23:00 PM-->
 <Tiled2Unity version="1.0.7.10">
   <AssignMaterial mesh="mesh_0001" material="Dungeon_Tile217 (1)" />
-  <Prefab name="example" orientation="Orthogonal" staggerAxis="Y" staggerIndex="Odd" hexSideLength="0" numLayers="1" numTilesWide="5" numTilesHigh="10" tileWidth="200" tileHeight="200" exportScale="0.005" mapWidthInPixels="1000" mapHeightInPixels="2000">
-    <GameObject name="Floor" x="0" y="0" z="0">
+  <Prefab name="example" orientation="Orthogonal" staggerAxis="Y" staggerIndex="Odd" hexSideLength="0" numLayers="1" numTilesWide="5" numTilesHigh="10" tileWidth="200" tileHeight="200" exportScale="0.005" mapWidthInPixels="1000" mapHeightInPixels="2000" layer="Floor">
+    <GameObject name="Floor" x="0" y="0" z="0" layer="Floor">
       <GameObject name="Dungeon_Tile217 (1)" copy="mesh_0001" sortingLayerName="" sortingOrder="0" opacity="1" />
     </GameObject>
     <GameObject name="FloorTile" x="0" y="0" z="0">

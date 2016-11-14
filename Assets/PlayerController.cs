@@ -14,7 +14,6 @@ public class PlayerController : MonoBehaviour, Turn {
     public GameObject drawMoves;
     public Image drawMovesImage;
     public LineRenderer myLine;
-    TileHolder myTiles;
     //Flag for a finished state if it doesn't end on input.
     bool stateFinished = false;
 
@@ -25,6 +24,7 @@ public class PlayerController : MonoBehaviour, Turn {
     LinkedList<Tile> path;
     Ray camRay;
     //bool cursorOnMap;
+    public TileHolder myTiles;
     public const int playerMoveLimit = 3;
 
     //Hack-y code to make sure that Vector3s match up in closedSet
@@ -43,10 +43,17 @@ public class PlayerController : MonoBehaviour, Turn {
         }
 
     }
-    
+
+    void Awake() {
+        //Debug.Log("Earlier static length: " + TileHolder.getNumTiles());
+    }
+
     // Use this for initialization
     void Start () {
-        myTiles = (TileHolder) TileMapObj.GetComponent<TileHolder>();
+        //Debug.Log(myTiles.getNumTiles());
+        //Debug.Log(((TileMapWrapper)TileMapObj.GetComponent<TileMapWrapper>()).myMap.Count);
+        //Debug.Log("static length: " + TileHolder.getNumTiles());
+        //myTiles = (TileHolder) TileMapObj.GetComponent<TileHolder>();
         //Instantiate myLine and disable it - now only State ReadyToMove
         //will deal with it.
         LineRenderer myLine = this.gameObject.GetComponent<LineRenderer>();
@@ -65,10 +72,8 @@ public class PlayerController : MonoBehaviour, Turn {
         player = this.GetComponent<Rigidbody>();
         cursor = GameObject.Find("CursorHelper").GetComponent<Transform>();
         mainCam = FindObjectOfType<Camera>();
-        Debug.Log(myTiles.getNumTiles());
+        //Debug.Log(myTiles.getNumTiles());
         playerCurrentTile = myTiles.getTile(player.transform.position);
-        
-        
     }
 
     public void StartTurn() { }
@@ -76,16 +81,23 @@ public class PlayerController : MonoBehaviour, Turn {
 
     // Update is called once per frame
     void Update()
-    { 
+    {
+        //cursor.gameObject.SetActive(true);
+        //cursor.position = TileMapObj.transform.InverseTransformPoint(new Vector3(0, 0, 0));
+        //Debug.Log(TileMapObj.transform.TransformPoint(new Vector3(0, 0, 0)));
+        /*myTiles = (TileHolder)TileMapObj.GetComponent<TileHolder>();
+        Debug.Log(myTiles.getNumTiles());*/
         camRay = mainCam.ScreenPointToRay(Input.mousePosition);
         //If it hits the floor
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
             cursor.gameObject.SetActive(true);
+            //cursor.position = TileMapObj.transform.InverseTransformPoint(new Vector3(0, 0, 0));
             //cursorOnMap = true;
             //Debug.Log(myTiles.getTile(new Vector3(0, 0, 0)));
-            Debug.Log(myTiles.getNumTiles());
-            cursor.position = myTiles.getTile(TileMapObj.transform.InverseTransformPoint(floorPos.point)).coordsToVector3();
+            //Debug.Log(TileMapObj.transform.TransformPoint(floorPos.point));
+            //Debug.Log(floorPos.point);
+            cursor.position = myTiles.getTile(floorPos.point).coordsToVector3();
         } else {
             //cursorOnMap = false; 
             cursor.gameObject.SetActive(false);
@@ -158,12 +170,12 @@ public class PlayerController : MonoBehaviour, Turn {
             //Vector3 cursorPos = controller.cursor.transform.position;
             if(controller.cursor.gameObject.activeSelf){
                Tile cursorTile = myTiles.getTile(controller.cursor.position);    
-            //this isn't really efficient though - instantiating and deleting game objects
-            //we'll leave it as it is right now though, because its well-controlled
-            //possibleMoves = new List<Tile>(movesUI.Select(l => l.position));
-            //Check that the cursor is currently in possible moves.
-            //Is this really necessary? We could draw a white line in possible moves
-            //and then a red line outside.
+                //this isn't really efficient though - instantiating and deleting game objects
+                //we'll leave it as it is right now though, because its well-controlled
+                //possibleMoves = new List<Tile>(movesUI.Select(l => l.position));
+                //Check that the cursor is currently in possible moves.
+                //Is this really necessary? We could draw a white line in possible moves
+                //and then a red line outside.
                 if (possibleMoves.Contains(cursorTile)) {
                     //Keep the line with Y = 0.0001f so that we can easily draw it.
                     //Vector3 playerPosToMouse = new Vector3(playerPos.x, cursorPos.y, playerPos.z);
@@ -284,7 +296,12 @@ public class PlayerController : MonoBehaviour, Turn {
                     {
                         //print("already in closed set:" + neighbor);
                         continue;
-                    } else if(neighbor == null){
+                    }
+                    else if (neighbor == null)
+                    {
+                        continue;
+                    }
+                    else if (!neighbor.isTraversable()) {
                         continue;
                     }
                     //trying to give gScore of key a default value
@@ -408,7 +425,8 @@ public class PlayerController : MonoBehaviour, Turn {
             if(upVisited != null) visited.UnionWith(upVisited);
             if(downVisited != null) visited.UnionWith(downVisited);
             return visited;
-        }
+            
+       }
     }
 
     private class Moving : PlayerState

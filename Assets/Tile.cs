@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using System.Linq;
 using System;
 
-
+[Serializable]
 public abstract class Tile : IEquatable<Tile>
 {
     //enum my tile type

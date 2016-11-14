@@ -5,75 +5,55 @@ using UnityEngine;
 [Tiled2Unity.CustomTiledImporter]
 public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
 
+    static Dictionary<Vector3, string> myDict = new Dictionary<Vector3, string>();
+    static List<GameObject> toDelete = new List<GameObject>();
+    static int numTiles_x;
+    static int numTiles_z;
+
 	public void HandleCustomProperties(GameObject gameObject,
         IDictionary<string, string> customProperties)
     {
-        //Tiled2Unity.TiledMap myTiledMap = (Tiled2Unity.TiledMap) gameObject.transform.root.gameObject.AddComponent <Tiled2Unity.TiledMap>();
-        //gameObject.transform.root.localScale = new Vector3(0.005f, 0.005f, 0.005f);
-        if (gameObject.transform.root.gameObject.GetComponent<TileHolder>() == null){
-            gameObject.transform.root.gameObject.AddComponent<TileHolder>();
-        }
-        TileHolder myTiles = (TileHolder) gameObject.transform.root.gameObject.GetComponent<TileHolder>();
-        if (myTiles == null) {
-            myTiles.myTiles = new Dictionary<TileCoords, Tile>();
-        }
+        toDelete.Add(gameObject);
+        Tiled2Unity.TiledMap tileMap = (Tiled2Unity.TiledMap) gameObject.transform.root.gameObject.GetComponent<Tiled2Unity.TiledMap>();
+        numTiles_x = tileMap.NumTilesHigh;
+        numTiles_z = tileMap.NumTilesWide;
         for(int i = 0; i < gameObject.transform.childCount; i++) {
             GameObject thisTile = gameObject.transform.GetChild(i).gameObject;
             if (customProperties.ContainsKey("Type")) {
-                //MyTileMap myTileMap = (MyTileMap) gameObject.transform.root.gameObject.GetComponent("MyTileMap");
-                //Tiled2Unity.TiledMap myMap = 
-                    //(Tiled2Unity.TiledMap) gameObject.transform.root.gameObject.GetComponent<Tiled2Unity.TiledMap>();
                 string stringType = customProperties["Type"];
                 Vector3 myPos = thisTile.transform.position;
-                TileCoords coords = new TileCoords(Mathf.FloorToInt(myPos.x), Mathf.FloorToInt(myPos.y));
+                Vector3 coords = new Vector3(Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.y))-(numTiles_x-1)), 0, Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.x))-(numTiles_z-1)));
                 Tile.TileType myType;
-                Debug.Log("pos: " + myPos + " coords: " + coords);
-                /*if(stringType == "Floor") {
-                    myType = Tile.TileType.Floor;
-                } else {
-                    myType = Tile.TileType.Obstacle;
-                }*/
-                switch(stringType){
-                    case "Obstacle":
-                        myType = Tile.TileType.Obstacle;
-                        myTiles.addTile(new Obstacle(coords));
-                        break;
-                    default:
-                        myType = Tile.TileType.Floor;
-                        myTiles.addTile(new FloorTile(coords));
-                        break;
+                if (!myDict.ContainsKey(coords))
+                {
+                    myDict.Add(coords, stringType);
                 }
-                /*if(myType == Tile.TileType.Floor) {
-                    //myTileMap.addTile(new FloorTile(coords));
-                } else {
-                    //myTileMap.addTile(new Obstacle(coords));
-                }*/
-                //GameObject.DestroyImmediate(gameObject);
-                //Debug.Log("added a tile with type: " + stringType);
-                //myCounter.myCounter++;
-                
-                // Add the terrain tile game object
-                /*StrategyTile tile = gameObject.AddComponent&amp;lt;StrategyTile&amp;gt;();
-                tile.TileType = customProperties["Terrain"];
-                tile.TileNote = customProperties["Note"];*/
             }
         }
-        /*for(int i = 0; i < gameObject.transform.childCount; i++) {
-            //GameObject thisTile = gameObject.transform.GetChild(i).gameObject;
-            Object.DestroyImmediate(gameObject.transform.GetChild(i).gameObject);
-        }*/
-        Debug.Log(myTiles.getNumTiles());
-        
     }
  
     public void CustomizePrefab(GameObject prefab)
     {
-        //GameObject floorTile = prefab.transform.GetChild(2).gameObject;
-        //GameObject obstacleTile = prefab.transform.GetChild(3).gameObject;
-        //Object.DestroyImmediate(floorTile);
-        //Object.DestroyImmediate(obstacleTile);
-        //UnityEngineInternal.APIUpdaterRuntimeServices.AddComponent(prefab, "Assets/Tiled2Unity/Scripts/Editor/CustomImporter_TileType.cs (39,9)", "MyTileMap.cs");
-        //prefab.AddComponent<TileCounter>();
+        //prefab.layer = 8;
+        MeshFilter myMesh = prefab.GetComponentInChildren<MeshFilter>();
+        myMesh.gameObject.AddComponent<MeshCollider>().sharedMesh = myMesh.sharedMesh;
+        Transform childTransform = prefab.transform.GetChild(0);
+        Quaternion myQuat = new Quaternion(0, 0, 0, 0);
+        myQuat.eulerAngles = new Vector3(90, 90, 0);
+        childTransform.localRotation = myQuat;
+        childTransform.localPosition = new Vector3(numTiles_x, 0, numTiles_z);
+        for (int i = 0; i < toDelete.Count; i++) {
+            Object.DestroyImmediate(toDelete[i]);
+        }
+        GameObject player = GameObject.Find("K916_Hound");
+        TileHolder tileHolder = player.GetComponent<TileHolder>();
+        if (tileHolder == null) {
+            tileHolder = player.AddComponent<TileHolder>();
+        }
+        tileHolder.size_x = numTiles_x;
+        tileHolder.size_z = numTiles_z;
+        tileHolder.values =  new List<string>(myDict.Values);
+        tileHolder.keys = new List<Vector3>(myDict.Keys);
     }
 
 }
