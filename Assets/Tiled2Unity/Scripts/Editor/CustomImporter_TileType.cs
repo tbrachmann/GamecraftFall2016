@@ -45,15 +45,15 @@ public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
         for (int i = 0; i < toDelete.Count; i++) {
             Object.DestroyImmediate(toDelete[i]);
         }
-        GameObject player = GameObject.Find("K916_Hound");
-        TileHolder tileHolder = player.GetComponent<TileHolder>();
-        if (tileHolder == null) {
-            tileHolder = player.AddComponent<TileHolder>();
+        GameObject board = GameObject.Find("Board");
+        TileMap tileMap = board.GetComponent<TileMap>();
+        if (tileMap == null) {
+            tileMap = board.AddComponent<TileMap>();
         }
-        tileHolder.size_x = numTiles_x;
-        tileHolder.size_z = numTiles_z;
-        tileHolder.values =  new List<string>(myDict.Values);
-        tileHolder.keys = new List<Vector3>(myDict.Keys);
+        tileMap.size_x = numTiles_x;
+        tileMap.size_z = numTiles_z;
+        tileMap.values =  new List<string>(myDict.Values);
+        tileMap.keys = new List<Vector3>(myDict.Keys);
     }
 
 }

@@ -9,11 +9,12 @@ public class PlayerController : MonoBehaviour, Turn {
     Transform cursor;
     PlayerState myState;
     Tile playerCurrentTile;
-    public GameObject TileMapObj;
-    public GameObject drawMovesHelper;
-    public GameObject drawMoves;
-    public Image drawMovesImage;
-    public LineRenderer myLine;
+    //public GameObject TileMapObj;
+    //set these to be children of the player
+    GameObject drawMovesHelper;
+    GameObject drawMoves;
+    Image drawMovesImage;
+    LineRenderer myLine;
     //Flag for a finished state if it doesn't end on input.
     bool stateFinished = false;
 
@@ -24,7 +25,7 @@ public class PlayerController : MonoBehaviour, Turn {
     LinkedList<Tile> path;
     Ray camRay;
     //bool cursorOnMap;
-    public TileHolder myTiles;
+    TileMap tileMap;
     public const int playerMoveLimit = 3;
 
     //Hack-y code to make sure that Vector3s match up in closedSet
@@ -45,18 +46,22 @@ public class PlayerController : MonoBehaviour, Turn {
     }
 
     void Awake() {
-        //Debug.Log("Earlier static length: " + TileHolder.getNumTiles());
+        //get cursor, myLine, drawMoves stuff in here
     }
 
     // Use this for initialization
     void Start () {
-        //Debug.Log(myTiles.getNumTiles());
-        //Debug.Log(((TileMapWrapper)TileMapObj.GetComponent<TileMapWrapper>()).myMap.Count);
-        //Debug.Log("static length: " + TileHolder.getNumTiles());
-        //myTiles = (TileHolder) TileMapObj.GetComponent<TileHolder>();
+        drawMovesHelper = GameObject.Find("DrawMovesHelper");
+        drawMoves = drawMovesHelper.transform.GetChild(0).gameObject;
+        drawMovesImage = drawMoves.transform.GetComponentInChildren<Image>();
+        myLine = gameObject.GetComponent<LineRenderer>();
+        player = gameObject.GetComponent<Rigidbody>();
+        cursor = GameObject.Find("CursorHelper").GetComponent<Transform>();
+        mainCam = FindObjectOfType<Camera>();
+        //try to get all references here so that you don't have to 
+        tileMap = GameManager.instance.getTileMap();
         //Instantiate myLine and disable it - now only State ReadyToMove
         //will deal with it.
-        LineRenderer myLine = this.gameObject.GetComponent<LineRenderer>();
         myLine.startColor = Color.white;
         myLine.endColor = Color.white;
         myLine.startWidth = 0.1f;
@@ -69,11 +74,7 @@ public class PlayerController : MonoBehaviour, Turn {
         drawMoves.SetActive(false);
         //The state to start out in. Waiting for input!
         myState = new WaitingForInput(this);
-        player = this.GetComponent<Rigidbody>();
-        cursor = GameObject.Find("CursorHelper").GetComponent<Transform>();
-        mainCam = FindObjectOfType<Camera>();
-        //Debug.Log(myTiles.getNumTiles());
-        playerCurrentTile = myTiles.getTile(player.transform.position);
+        playerCurrentTile = tileMap.getTile(player.transform.position);
     }
 
     public void StartTurn() { }
@@ -82,27 +83,20 @@ public class PlayerController : MonoBehaviour, Turn {
     // Update is called once per frame
     void Update()
     {
-        //cursor.gameObject.SetActive(true);
-        //cursor.position = TileMapObj.transform.InverseTransformPoint(new Vector3(0, 0, 0));
-        //Debug.Log(TileMapObj.transform.TransformPoint(new Vector3(0, 0, 0)));
-        /*myTiles = (TileHolder)TileMapObj.GetComponent<TileHolder>();
-        Debug.Log(myTiles.getNumTiles());*/
+        if (!GameManager.instance.playerTurn) {
+            return;
+        }
         camRay = mainCam.ScreenPointToRay(Input.mousePosition);
         //If it hits the floor
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
             cursor.gameObject.SetActive(true);
-            //cursor.position = TileMapObj.transform.InverseTransformPoint(new Vector3(0, 0, 0));
-            //cursorOnMap = true;
-            //Debug.Log(myTiles.getTile(new Vector3(0, 0, 0)));
-            //Debug.Log(TileMapObj.transform.TransformPoint(floorPos.point));
-            //Debug.Log(floorPos.point);
-            cursor.position = myTiles.getTile(floorPos.point).coordsToVector3();
+            cursor.position = tileMap.getTile(floorPos.point).coordsToVector3();
         } else {
             //cursorOnMap = false; 
             cursor.gameObject.SetActive(false);
         }
-        playerCurrentTile = myTiles.getTile(player.transform.position);
+        playerCurrentTile = tileMap.getTile(player.transform.position);
         myState.Update();
         if (Input.anyKeyDown || stateFinished) {
             PlayerState nextState = myState.HandleInput();
@@ -127,7 +121,7 @@ public class PlayerController : MonoBehaviour, Turn {
     //endTurn\
     //that will be called by the game manager!
     //private so that it can only be accessed by the player
-    private class ReadyToMove : PlayerState
+    private class ReadyToMove : Movable, PlayerState
     {
         //The list of tiles drawn on the board to show possible moves.
         //Y is 0.0001f
@@ -142,34 +136,33 @@ public class PlayerController : MonoBehaviour, Turn {
         List<Tile> possibleMoves;
         Tile playerTile;
         //Tile cursorTile;
-        TileHolder myTiles;
+        PlayerController controller;
 
-        public ReadyToMove(PlayerController controller) : base(controller)
+        public ReadyToMove(TileMap tileMap, PlayerController controller) : base(tileMap)
         {
+            this.controller = controller;
             drawMovesHelper = controller.drawMovesHelper;
             drawMoves = controller.drawMoves;
             myLine = controller.myLine;
         }
 
-        public override void Enter() {
-            myTiles = controller.myTiles;
-            playerTile = myTiles.getTile(controller.gameObject.GetComponent<Rigidbody>().transform.position);
+        public void Enter() {
+            tileMap = controller.tileMap;
             //This needs to be updated every time we enter this state.
-            //playerPos = controller.gameObject.GetComponent<Rigidbody>().transform.position;
+            //OR does it get it from player controller update?
+            playerTile = tileMap.getTile(controller.gameObject.GetComponent<Rigidbody>().transform.position);
             //Get the tile that draws the moves (DrawPossibleMoves 
             //will be instantiating this for how many moves there
             //are).
-            //drawMoves.SetActive(false);
-            //drawMoves.SetActive(false);
             //Draw the moves.
             DrawPossibleMoves();
         }
         
-        public override void Update() {
+        public void Update() {
             //Position of the cursor. Set by player controller.
             //Vector3 cursorPos = controller.cursor.transform.position;
             if(controller.cursor.gameObject.activeSelf){
-               Tile cursorTile = myTiles.getTile(controller.cursor.position);    
+               Tile cursorTile = tileMap.getTile(controller.cursor.position);    
                 //this isn't really efficient though - instantiating and deleting game objects
                 //we'll leave it as it is right now though, because its well-controlled
                 //possibleMoves = new List<Tile>(movesUI.Select(l => l.position));
@@ -187,9 +180,7 @@ public class PlayerController : MonoBehaviour, Turn {
             }
         }
 
-        public override void Exit() {
-            //put path into player Y units?
-            //controller.path = new LinkedList<Vector3>(preparePath.Select(l => new Vector3(l.x, playerPos.y, l.z)));
+        public void Exit() {
             controller.path = preparePath;
             //Share the line with player so that the next state can access it.
             //Turn off possible movement grid and path line.
@@ -197,7 +188,7 @@ public class PlayerController : MonoBehaviour, Turn {
             myLine.enabled = false;
         }
 
-        public override PlayerState HandleInput()
+        public PlayerState HandleInput()
         {
             if (Input.GetKeyDown(KeyCode.M)) {
                 return new WaitingForInput(controller);
@@ -221,16 +212,13 @@ public class PlayerController : MonoBehaviour, Turn {
             //RectTransform imagePos = drawMoves.canvas.GetComponent<RectTransform>();
             possibleMoves = CalculateMoveLimits(playerTile, new HashSet<Tile>()).ToList();
             IEnumerator<Tile> myEnumerator = possibleMoves.GetEnumerator();
-            //(returnList.Count);
-            //((RectTransform)Object.Instantiate(mouseHelp)).transform.position = new Vector3(myEnumerator.Current.x, 0.0001f, myEnumerator.Current.z);
             //instantiate all possible moves and then go through list and enable
             while (myEnumerator.MoveNext())
             {
                 //print(returnList[i]);
                 TileCoords currentCoords = myEnumerator.Current.getCoords();
                 GameObject moveSquare = GameObject.Instantiate(drawMoves, drawMovesHelper.transform);
-                //RectTransform moveSquare = ((RectTransform)UnityEngine.Object.Instantiate(imagePos));
-                //drawMovesHelper.transform.InverseTransformPoint(new Vector3(currentCoords.x, 0.0001f, currentCoords.z);)
+                //y = 0.0001f so that its just off the floor
                 moveSquare.transform.position = new Vector3(currentCoords.x + 0.5f, 0.0001f, currentCoords.z + 0.5f);
                 movesUI.Add(moveSquare);
             }
@@ -247,186 +235,6 @@ public class PlayerController : MonoBehaviour, Turn {
             possibleMoves.Clear();
             //drawMoves.enabled = false;
         }
-
-        //Find the shortest path to follow to goal.
-        LinkedList<Tile> FindShortestPath(Tile start, Tile goal)
-        {
-            //print("start: " + start + " " + "goal: " + goal);
-            HashSet<Tile> closedSet = new HashSet<Tile>();
-            PriorityQueue openSet = new PriorityQueue(new List<Tile>() { start });
-            TileCoords[] neighbors = { TileCoords.right, TileCoords.forward, TileCoords.left, TileCoords.back };
-            //Node -> the node that it can most efficiently be reached from
-            Dictionary<Tile, Tile> cameFrom = new Dictionary<Tile, Tile> { };
-            //Node -> "cost" from getting from start to this node
-            //default value of infinity
-            Dictionary<Tile, float> gScore = new Dictionary<Tile, float> { };
-            //gScore.Add(start, 0);
-            gScore[start] = 0;
-            //Node -> the "score" of getting from start node to goal through this node
-            //default value of infinity
-            Dictionary<Tile, float> fScore = new Dictionary<Tile, float> { };
-            fScore[start] = ManhattanHeuristic(start, goal);
-            while (openSet.Count != 0)
-            {
-                //Aggregate - like python map? - was so proud of this but it turned out to be useless
-                //Vector3 current = 
-                // fScore.Aggregate((key, nextKey) => key.Value < nextKey.Value ? key : nextKey).Key;
-                Tile current = openSet.First.Value;
-                //print("current: " + current);
-                if (current == goal)
-                {
-                    //print("ever exit?");
-                    return ReconstructPath(cameFrom, current);
-                }
-                openSet.Remove(current);
-                closedSet.Add(current);
-                //how to get neighbor of current
-                string closedString = "";
-                /*foreach (Tile t in closedSet)
-                {
-                    closedString = closedString + " " + v;
-                }*/
-                //print(closedString);
-                //When implementing obstacles, just need to check if each neighbor is valid:
-                //if its traversable or not
-                Tile[] currentNeighbors = neighbors.Select(l => myTiles.getTile(l + current.getCoords())).ToArray<Tile>();
-                foreach (Tile neighbor in currentNeighbors)
-                {
-                    if (closedSet.Contains(neighbor))
-                    {
-                        //print("already in closed set:" + neighbor);
-                        continue;
-                    }
-                    else if (neighbor == null)
-                    {
-                        continue;
-                    }
-                    else if (!neighbor.isTraversable()) {
-                        continue;
-                    }
-                    //trying to give gScore of key a default value
-                    float neighborGScore;
-                    gScore.TryGetValue(neighbor, out neighborGScore);
-                    gScore[neighbor] = neighborGScore == 0f ? 10000 : neighborGScore;
-                    //print(neighbor + "gScore: " + gScore[neighbor]);
-                    //(the cost of moving from start to neighbor) + (default value of moving between tiles)
-                    //for tiles with different movement costs, this will have to change
-                    float tentativeGScore = gScore[current] + 1;
-                    if (!(openSet.Contains(neighbor)))
-                    {
-                        float neighborFScore;
-                        fScore.TryGetValue(neighbor, out neighborFScore);
-                        fScore[neighbor] = neighborFScore == 0f ? 10000 : neighborFScore;
-                        openSet.AddToQueue(neighbor, fScore);
-                    }
-                    //Here: gScore[neighbor] shouldn't have a value yet
-                    else if (tentativeGScore >= gScore[neighbor])
-                    {
-                        continue;
-                    }
-                    cameFrom[neighbor] = current;
-                    gScore[neighbor] = tentativeGScore;
-                    fScore[neighbor] = gScore[neighbor] + ManhattanHeuristic(neighbor, goal);
-                    //print(neighbor + "fScore: " + fScore[neighbor]);
-                }
-            }
-            return null;
-        }
-
-        //Helper method for FindShortestPath.
-        LinkedList<Tile> ReconstructPath(Dictionary<Tile, Tile> previousNode, Tile current)
-        {
-            LinkedList<Tile> totalPath = new LinkedList<Tile>();
-            totalPath.AddFirst(current);
-            while (previousNode.Select((l, r) => l.Key).Contains(current))
-            {
-                current = previousNode[current];
-                totalPath.AddFirst(current);
-            }
-            return totalPath;
-        }
-
-        //Heuristic method for FindShortestPath.
-        float ManhattanHeuristic(Tile node, Tile goal)
-        {
-            TileCoords nodeCoords = node.getCoords();
-            TileCoords goalCoords = node.getCoords();
-            float dx = Mathf.Abs(nodeCoords.x - goalCoords.x);
-            float dy = Mathf.Abs(nodeCoords.z - goalCoords.z);
-            return 1 * (dx + dy);
-        }
-
-        /*Use this to find all available moves, taking movelimits into account. Can we pre-bake this into the coming A* 
-         * algorithm to make sure that it only selects from available moves?*/
-        HashSet<Tile> CalculateMoveLimits(Tile current, HashSet<Tile> visited, int limit = playerMoveLimit)
-        {
-            if (limit == 0)
-            {
-                visited.Add(current);
-                return visited;
-            }
-            visited.Add(current);
-            limit -= 1;
-            //if right in visited - don't add else rightVect
-            //Tile rightVect = new Tile(current.x + 1, current.y, current.z);
-            HashSet<Tile> rightVisited = null;
-            HashSet<Tile> leftVisited = null;
-            HashSet<Tile> upVisited = null;
-            HashSet<Tile> downVisited = null;
-            //also check if each new tile is traversable or not
-            Tile rightTile = myTiles.getTile(current.getCoords() + TileCoords.right);
-            if(rightTile != null && rightTile.isTraversable()){
-                rightVisited = new HashSet<Tile>() { };
-                rightVisited.UnionWith(visited);
-                if (!(visited.Contains(rightTile)))
-                {
-                    rightVisited = CalculateMoveLimits(rightTile, rightVisited, limit);
-                }
-                
-            }
-            //if left in visited - don't add else leftVect
-            //Tile leftVect = new Tile(current.x, current.y, current.z + 1);
-            Tile leftTile = myTiles.getTile(current.getCoords() + TileCoords.left);
-            if(leftTile != null && leftTile.isTraversable()) {
-                leftVisited = new HashSet<Tile>() { };
-                leftVisited.UnionWith(visited);
-                if (!(visited.Contains(leftTile)))
-                {
-                    leftVisited = CalculateMoveLimits(leftTile, leftVisited, limit);
-                }
-                
-            }
-            //if up in visited - don't add else upVect
-            //Tile upVect = new Tile(current.x + 1, current.y, current.z + 1);
-            Tile upTile = myTiles.getTile(current.getCoords() + TileCoords.forward);
-            if(upTile != null && upTile.isTraversable()){
-                upVisited = new HashSet<Tile>() { };
-                upVisited.UnionWith(visited);
-                if (!(visited.Contains(upTile)))
-                {
-                    upVisited = CalculateMoveLimits(upTile, upVisited, limit);
-                }
-                
-            }
-            //if down in visited - don't add else downVect
-            //Tile downVect = new Tile(current.x - 1, current.y, current.z - 1);
-            Tile downTile = myTiles.getTile(current.getCoords() + TileCoords.back);
-            if(downTile != null && downTile.isTraversable()) {
-                downVisited = new HashSet<Tile>() { };
-                downVisited.UnionWith(visited);
-                if (!(visited.Contains(downTile)))
-                {
-                    downVisited = CalculateMoveLimits(downTile, downVisited, limit);
-                } 
-                
-            } 
-            if(rightVisited != null) visited.UnionWith(rightVisited);
-            if(leftVisited != null) visited.UnionWith(leftVisited);
-            if(upVisited != null) visited.UnionWith(upVisited);
-            if(downVisited != null) visited.UnionWith(downVisited);
-            return visited;
-            
-       }
     }
 
     private class Moving : PlayerState
@@ -435,12 +243,14 @@ public class PlayerController : MonoBehaviour, Turn {
         LinkedList<Tile> myPath;
         LinkedListNode<Tile> nextTile;
         Transform player;
+        PlayerController controller;
 
-        public Moving(PlayerController controller) : base(controller)
-        {   
+        public Moving(PlayerController controller)
+        {
+            this.controller = controller;
         }
 
-        public override void Enter()
+        public void Enter()
         {
             player = controller.gameObject.transform.parent;
             myLine = controller.gameObject.GetComponent<LineRenderer>();
@@ -449,14 +259,24 @@ public class PlayerController : MonoBehaviour, Turn {
             nextTile = myPath.First;
         }
 
-        public override void Exit()
+        public void Exit()
         {
             myLine.enabled = false;
+            GameManager.instance.playerTurn = false;
         }
 
-        public override void Update()
-        {   
-            Vector3 nextTilePos = nextTile.Value.coordsToVector3(); 
+        public void Update()
+        {
+            Vector3 nextTilePos = nextTile.Value.coordsToVector3();
+            Quaternion rotation = Quaternion.LookRotation(nextTilePos - player.position);
+            //Debug.Log(rotation.eulerAngles);
+            //Vector3 eulerAngleVelocity = new Vector3(0, 3, 0);
+            //Quaternion deltaRotation = Quaternion.Euler(eulerAngleVelocity * (Time.deltaTime * 3f));
+            //player.GetComponentInChildren<Rigidbody>().MoveRotation(rotation * deltaRotation);
+            player.GetComponentInChildren<Rigidbody>().rotation = rotation;
+            if (nextTilePos == null) {
+                controller.stateFinished = true;
+            }
             if(player.position != nextTilePos){
                 //print(player.position + " " + nextTile.Value.coordsToVector3());
                 player.position = Vector3.MoveTowards(player.position, nextTilePos, Time.deltaTime * 3f);
@@ -467,18 +287,9 @@ public class PlayerController : MonoBehaviour, Turn {
             if(nextTile == null){
                 controller.stateFinished = true;
             }
-            /*if (player.position != nextPos.Value) {
-                player.position = Vector3.MoveTowards(player.position, nextPos.Value, Time.deltaTime * 3f);
-            }
-            if (player.position == nextPos.Value) {
-                nextPos = nextPos.Next;
-            }
-            if (nextPos == null) {
-                controller.stateFinished = true;
-            }*/
         }
 
-        public override PlayerState HandleInput() {
+        public PlayerState HandleInput() {
             if(!(Input.anyKeyDown)){
                 return new WaitingForInput(controller);    
             } else {
@@ -491,28 +302,31 @@ public class PlayerController : MonoBehaviour, Turn {
 
     private class WaitingForInput : PlayerState
     {
-        public WaitingForInput(PlayerController controller) : base(controller)
+        PlayerController controller;
+
+        public WaitingForInput(PlayerController controller)
+        {
+            this.controller = controller;
+        }
+
+        public void Enter()
         {
         }
 
-        public override void Enter()
+        public void Exit()
         {
         }
 
-        public override void Exit()
-        {
-        }
-
-        public override PlayerState HandleInput()
+        public PlayerState HandleInput()
         {
             if (Input.GetKeyDown(KeyCode.M))
             {
-                return new ReadyToMove(controller);
+                return new ReadyToMove(controller.tileMap, controller);
             }
             return null;
         }
 
-        public override void Update()
+        public void Update()
         {
         }
     }
