@@ -1,18 +1,18 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
-public class PriorityQueue : LinkedList<Vector3>, ICollection<Vector3>
+public class PriorityQueue : LinkedList<Tile>, ICollection<Tile>
 {
     public PriorityQueue() : base() { }
-    public PriorityQueue(IEnumerable<Vector3> val) : base(val) { }
+    public PriorityQueue(IEnumerable<Tile> val) : base(val) { }
 
-    public LinkedListNode<Vector3> AddToQueue(Vector3 node, Dictionary<Vector3, float> fScore){
+    public LinkedListNode<Tile> AddToQueue(Tile node, Dictionary<Tile, float> fScore){
         if (this.Contains(node)) {
             return null;
         }
-        LinkedListNode<Vector3> current = this.First;
+        LinkedListNode<Tile> current = this.First;
         //if this queue has no values yet
         if (current == null) {
             return this.AddFirst(node);

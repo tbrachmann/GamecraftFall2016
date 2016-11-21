@@ -5,18 +5,12 @@ using UnityEngine.UI;
 using System.Linq;
 using System;
 
-public abstract class PlayerState 
+public interface PlayerState 
 {
-    protected PlayerController controller;
 
-	public PlayerState(PlayerController controller)
-	{
-        this.controller = controller;
-	}
-
-    public abstract void Enter();
-    public abstract void Exit();
-    public abstract void Update();
-    public abstract PlayerState HandleInput();
+    void Enter();
+    void Exit();
+    void Update();
+    PlayerState HandleInput();
 
 }
