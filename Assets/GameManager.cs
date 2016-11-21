@@ -22,7 +22,9 @@ class GameManager : MonoBehaviour {
 		board = GameObject.Find("Board");
 		player = GameObject.Find("Player");
 		tileMap = board.GetComponent<TileMap>();
-		//Build the board.
+        //Build the board.
+        //Set player position to playerStart
+        player.transform.position = tileMap.playerStart;
 	}
 
 	void Update() {
