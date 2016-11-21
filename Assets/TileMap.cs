@@ -12,6 +12,7 @@ public class TileMap : MonoBehaviour {
 	public float tileSize = 1.0f;
     public List<string> values = new List<string>();
     public List<Vector3> keys = new List<Vector3>();
+    public Vector3 playerStart;
     //Tiled2Unity.TiledMap otherTileMap;
     Dictionary<TileCoords, Tile> myTiles = new Dictionary<TileCoords, Tile>();
     //public int tileCount;

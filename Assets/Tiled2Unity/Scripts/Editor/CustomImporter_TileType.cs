@@ -9,6 +9,7 @@ public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
     static List<GameObject> toDelete = new List<GameObject>();
     static int numTiles_x;
     static int numTiles_z;
+    static Vector3 playerStart;
 
 	public void HandleCustomProperties(GameObject gameObject,
         IDictionary<string, string> customProperties)
@@ -22,7 +23,12 @@ public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
             if (customProperties.ContainsKey("Type")) {
                 string stringType = customProperties["Type"];
                 Vector3 myPos = thisTile.transform.position;
+                if (stringType == "PlayerStart") {
+                    playerStart = new Vector3(Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.y)) - (numTiles_x - 1)), 0, Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.x)) - (numTiles_z - 1)));
+                    Debug.Log(playerStart);
+                }
                 Vector3 coords = new Vector3(Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.y))-(numTiles_x-1)), 0, Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.x))-(numTiles_z-1)));
+                //Vector3 coords = new Vector3(myPos.y, 0, myPos.x);
                 Tile.TileType myType;
                 if (!myDict.ContainsKey(coords))
                 {
@@ -54,6 +60,7 @@ public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
         tileMap.size_z = numTiles_z;
         tileMap.values =  new List<string>(myDict.Values);
         tileMap.keys = new List<Vector3>(myDict.Keys);
+        tileMap.playerStart = playerStart;
     }
 
 }
