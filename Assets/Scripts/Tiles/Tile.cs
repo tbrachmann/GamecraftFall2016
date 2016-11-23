@@ -10,7 +10,7 @@ public abstract class Tile : IEquatable<Tile>
 {
     //enum my tile type
     //maybe enums should go into the same file?
-    public enum TileType {Sand, Rock, Grass, Water, Obstacle, Floor};
+    public enum TileType {Sand, Rock, Water, Obstacle, Floor};
     protected TileType myType;
     protected TileCoords myCoords;
     protected bool traversable = true;

@@ -78,7 +78,7 @@ namespace Tiled2Unity
             return this.Orientation == MapOrientation.Staggered || this.Orientation == MapOrientation.Hexagonal;
         }
 
-        /*private void OnDrawGizmosSelected()
+        private void OnDrawGizmosSelected()
         {
             Vector3 pos_w = this.gameObject.transform.position;
             Vector3 topLeft = Vector3.zero + pos_w;
@@ -99,6 +99,6 @@ namespace Tiled2Unity
             Gizmos.DrawLine(topRight, bottomRight);
             Gizmos.DrawLine(bottomRight, bottomLeft);
             Gizmos.DrawLine(bottomLeft, topLeft);
-        }*/
+        }
     }
 }

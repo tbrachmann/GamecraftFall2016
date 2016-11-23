@@ -3,12 +3,12 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PlayerController : MonoBehaviour, Turn {
+public class PlayerController : MonoBehaviour, Combatable {
 
     Rigidbody player;
     Transform cursor;
     PlayerState myState;
-    Tile playerCurrentTile;
+    public Tile playerCurrentTile;
     //public GameObject TileMapObj;
     //set these to be children of the player
     GameObject drawMovesHelper;
@@ -17,6 +17,9 @@ public class PlayerController : MonoBehaviour, Turn {
     LineRenderer myLine;
     //Flag for a finished state if it doesn't end on input.
     bool stateFinished = false;
+    //public bool myTurn = false;
+    public float health = 100;
+    int myActionPoints = 1;
 
     Camera mainCam;
     public float speed = 2f;
@@ -26,24 +29,26 @@ public class PlayerController : MonoBehaviour, Turn {
     Ray camRay;
     //bool cursorOnMap;
     TileMap tileMap;
-    public const int playerMoveLimit = 3;
+    public const int playerMoveLimit = 1;
 
-    //Hack-y code to make sure that Vector3s match up in closedSet
-    //was having trouble with the HashCodes not matching up. So now
-    //all Vector3s have the same hashcode (0) and are evaluated for
-    //equality based on values alone.
-    private class Vector3Comparer : EqualityComparer<Vector3> {
+    static Dictionary<string, Attack> myAttacks = new Dictionary<string, Attack>()
+    {
+        {"Ferocious Bite", new Attack(20, 1, "Ferocious Bite") },
+        {"Tennis Ball Throw", new Attack(15, 3, "Tennis Ball Throw") },
+    };
 
-        public override bool Equals(Vector3 a, Vector3 b) {
-            return a == b;
-        }
+    /*static Dictionary<string, Ability> myAbilities = new Dictionary<string, Ability>()
+    {
 
-        //hack-y way to make sure they have same hashcodes
-        public override int GetHashCode(Vector3 a) {
-            return 0;
-        }
+    };*/
 
-    }
+    static Dictionary<string, Stance> myStances = new Dictionary<string, Stance>()
+    {
+        {"Relaxed", new Stance(0, 0, "Relaxed") },
+        {"Alert", new Stance(-0.15f, -0.1f, "Alert") },
+        {"Threatened", new Stance(0.1f, 0.15f, "Threatened") }
+    };
+
 
     void Awake() {
         //get cursor, myLine, drawMoves stuff in here
@@ -84,6 +89,7 @@ public class PlayerController : MonoBehaviour, Turn {
     void Update()
     {
         if (!GameManager.instance.playerTurn) {
+            myActionPoints = 1;
             return;
         }
         camRay = mainCam.ScreenPointToRay(Input.mousePosition);
@@ -112,6 +118,16 @@ public class PlayerController : MonoBehaviour, Turn {
     public float ConvertToFloorUnits(float x) {
         if (x < 0) return (int)x - 0.5f;
         else return (int)x + 0.5f;
+    }
+
+    public void dealDamage(Combatable target, float damage) {
+        //float modifiedDamage = damage + (damage * myStances.getDamageGivenModifier());
+        target.takeDamage(damage);
+    }
+
+    public void takeDamage(float damage) {
+        health -= damage;
+        Debug.Log(health);
     }
 
     //The state at the start of the turn.
@@ -257,12 +273,12 @@ public class PlayerController : MonoBehaviour, Turn {
             myLine.enabled = true;
             myPath = controller.path;
             nextTile = myPath.First;
+            controller.myActionPoints -= 1;
         }
 
         public void Exit()
         {
             myLine.enabled = false;
-            GameManager.instance.playerTurn = false;
         }
 
         public void Update()
@@ -274,9 +290,9 @@ public class PlayerController : MonoBehaviour, Turn {
             //Quaternion deltaRotation = Quaternion.Euler(eulerAngleVelocity * (Time.deltaTime * 3f));
             //player.GetComponentInChildren<Rigidbody>().MoveRotation(rotation * deltaRotation);
             player.GetComponentInChildren<Rigidbody>().rotation = rotation;
-            if (nextTilePos == null) {
+            /*if (nextTilePos == null) {
                 controller.stateFinished = true;
-            }
+            }*/
             if(player.position != nextTilePos){
                 //print(player.position + " " + nextTile.Value.coordsToVector3());
                 player.position = Vector3.MoveTowards(player.position, nextTilePos, Time.deltaTime * 3f);
@@ -300,6 +316,163 @@ public class PlayerController : MonoBehaviour, Turn {
 
     }
 
+    private class ReadyToAttack : PlayerState
+    {
+
+        PlayerController controller;
+        //Question marks make it nullable. Doesn't look nice though.
+        //I guess by default structs are non-nullable in C#.
+        Attack newAttack;
+        Ability newAbility;
+        Stance newStance;
+
+
+        public ReadyToAttack(PlayerController controller) {
+            this.controller = controller;
+        }
+
+        public void Enter() {
+
+        }
+
+        public void Update() {
+
+        }
+
+        public PlayerState HandleInput() {
+            //In the end, the input string will be the attack or ability name.
+            //Configured with onscreen buttons/hotkeys.
+            switch (Input.inputString)
+            {
+                case "q":
+                    newAttack = myAttacks["Ferocious Bite"];
+                    return new Targeting(controller, newAttack);
+                case "w":
+                    newAttack = myAttacks["Tennis Ball Throw"];
+                    return new Targeting(controller, newAttack);
+                case "r":
+                    //The ability is not implemented yet.
+                    newStance = myStances["Relaxed"];
+                    return null;
+                case "t":
+                    newStance = myStances["Alert"];
+                    return null;
+                case "y":
+                    newStance = myStances["Threatened"];
+                    return null;
+                default:
+                    return null;
+            }
+        }
+
+        public void Exit() {
+
+        }
+
+    }
+
+    private class Targeting : PlayerState
+    {
+
+        PlayerController controller;
+        //need to access tileMap to make check if enemies are in range
+        int range;
+        Enemy target;
+        Attack myAttack;
+
+
+        public Targeting(PlayerController controller, Attack attack)
+        {
+            this.controller = controller;
+            this.myAttack = attack;
+            this.range = attack.getRange();
+        }
+
+        public void Enter()
+        {
+            target = GameObject.Find("Enemy").GetComponent<Enemy>();
+            //Activate targeting reticle.
+        }
+
+        public void Update()
+        {
+            //do all the GUI stuff here
+            //reticle, etc.
+        }
+
+        public PlayerState HandleInput()
+        {
+            //TODO: check if target is inRange and valid
+            if (Input.GetMouseButtonDown(0))
+            {
+                TileCoords playerCoords = controller.playerCurrentTile.getCoords();
+                TileCoords targetCoords = controller.tileMap.getTile(target.transform.position).getCoords();
+                float dx = Mathf.Abs(playerCoords.x - targetCoords.x);
+                float dy = Mathf.Abs(playerCoords.z - targetCoords.z);
+                int euclideanDistance = Mathf.FloorToInt(Mathf.Sqrt((dx * dx) + (dy * dy)));
+                if (euclideanDistance <= range)
+                {
+                    //carry out attack
+                    controller.dealDamage(target, myAttack.getDamage());
+                    controller.myActionPoints -= 1;
+                    return new WaitingForInput(controller);
+                }
+                //get the target
+                //return new Attacking(controller, attack, target);
+                //do we even need a state for this? can just carry 
+                //out the attack right here
+            }
+            else {
+                return null;
+            }
+            if (Input.GetKeyDown(KeyCode.Escape)) {
+                return new WaitingForInput(controller);
+            }
+            return null;
+        }
+
+        public void Exit()
+        {
+            //Deactivate targeting reticle.
+        }
+
+    }
+
+    /*private class Attacking : PlayerState
+    {
+
+        PlayerController controller;
+        //need to access tileMap to make check if enemies are in range
+        TileMap tileMap;
+
+        public Attacking(PlayerController controller)
+        {
+            this.controller = controller;
+            this.tileMap = controller.tileMap;
+        }
+
+        public void Enter()
+        {
+
+        }
+
+        public void Update()
+        {
+
+        }
+
+        public PlayerState HandleInput()
+        {
+            return null;
+        }
+
+        public void Exit()
+        {
+
+        }
+
+    }*/
+
     private class WaitingForInput : PlayerState
     {
         PlayerController controller;
@@ -311,6 +484,12 @@ public class PlayerController : MonoBehaviour, Turn {
 
         public void Enter()
         {
+            /*Since each state returns to WaitingForInput when its finished,
+            we'll just check if the turn is over and end it in here. */
+            if (controller.myActionPoints == 0) {
+                Debug.Log("does this ever win");
+                GameManager.instance.playerTurn = false;
+            }
         }
 
         public void Exit()
@@ -319,9 +498,27 @@ public class PlayerController : MonoBehaviour, Turn {
 
         public PlayerState HandleInput()
         {
+            //Define a new combat state, it will be accessible from here.
+            //We need move limits but also "action points" to determine when 
+            //to end the turn. 
+            //Tentative attack points: 3
+            //Two moves and 1 attack
+            //Or 1 move and 2 attacks
+            //How to deal with stances?
+            //Just have reference to current stance, and call
+            //stance.takeDamage(attackBaseDamage);
+            //stance.dealDamage(attackBaseDamage);
+            //dealing damage done through GameManager?
+            //dealDamage(amount, enemy); ? 
+            //basically, does attacking enemy get to call player.takeDamage()
+            //or should it go through an intermediary? Either the game manager or
+            //a combat handler
             if (Input.GetKeyDown(KeyCode.M))
             {
                 return new ReadyToMove(controller.tileMap, controller);
+            }
+            if (Input.GetKeyDown(KeyCode.A)) {
+                return new ReadyToAttack(controller);
             }
             return null;
         }

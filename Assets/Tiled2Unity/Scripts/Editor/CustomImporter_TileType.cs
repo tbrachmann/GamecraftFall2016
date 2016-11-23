@@ -25,7 +25,7 @@ public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
                 Vector3 myPos = thisTile.transform.position;
                 if (stringType == "PlayerStart") {
                     playerStart = new Vector3(Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.y)) - (numTiles_x - 1)), 0, Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.x)) - (numTiles_z - 1)));
-                    Debug.Log(playerStart);
+                    //Debug.Log(playerStart);
                 }
                 Vector3 coords = new Vector3(Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.y))-(numTiles_x-1)), 0, Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.x))-(numTiles_z-1)));
                 //Vector3 coords = new Vector3(myPos.y, 0, myPos.x);

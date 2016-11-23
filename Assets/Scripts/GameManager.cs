@@ -6,7 +6,7 @@ using UnityEngine.UI;
 class GameManager : MonoBehaviour {
 
 	public static GameManager instance;
-	[HideInInspector]public GameObject player;
+	[HideInInspector]public PlayerController player;
     [HideInInspector]public GameObject board;
     //public List<Enemy> enemies;
     [HideInInspector]public TileMap tileMap;
@@ -20,11 +20,11 @@ class GameManager : MonoBehaviour {
 			instance = this;
 		}
 		board = GameObject.Find("Board");
-		player = GameObject.Find("Player");
+		player = GameObject.Find("Player").GetComponentInChildren<PlayerController>();
 		tileMap = board.GetComponent<TileMap>();
         //Build the board.
         //Set player position to playerStart
-        player.transform.position = tileMap.playerStart;
+        player.transform.root.position = tileMap.playerStart;
 	}
 
 	void Update() {
