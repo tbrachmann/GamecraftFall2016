@@ -7,27 +7,50 @@ public class Spider : Enemy
 {
     public override void dealDamage(Combatable target, float damage)
     {
-        throw new NotImplementedException();
+        bool trait = false;
+        if (trait)
+        {
+            damage = 40;
+        }
+        target.takeDamage(damage);
     }
 
     public override void takeDamage(float damage)
     {
-        throw new NotImplementedException();
+        health -= damage;
     }
 
     //Roshan: implement AI here.
     protected override PlayerState getBestMove()
     {
-        return null;
+        TileCoords playerCoords = player.playerCurrentTile.getCoords();
+        TileCoords targetCoords = myCurrentTile.getCoords();
+        float dx = Mathf.Abs(playerCoords.x - targetCoords.x);
+        float dy = Mathf.Abs(playerCoords.z - targetCoords.z);
+        int manhattanDistance = Mathf.FloorToInt(dx + dy);
+        if (manhattanDistance > 1 && manhattanDistance < 5)
+        {
+            return new EnemyMoving(tileMap, this);
+        }
+        else if (manhattanDistance >= 5)
+        {
+            return new Attacking(player, myAttack, this);
+            //TODO: Redesign player trap. The enemy should not be able to freeze-spam.
+        }
+        else
+        {
+            return new Attacking(player, myAttack, this);
+        }
     }
 
     // Use this for initialization
-    void Start () {
-		
-	}
+    protected override void Start () {
+        //TODO: Implement player trap or equivalent
+        this.myAttack = new Attack(36, 1, "Venomous Bite");
+        this.health = 30;
+        this.moveLimit = 2;
+        this.actionPoints = 2;
+        base.Start();
+    }
 	
-	// Update is called once per frame
-	void Update () {
-		
-	}
 }

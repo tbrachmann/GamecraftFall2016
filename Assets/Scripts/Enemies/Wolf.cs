@@ -8,7 +8,7 @@ public class Wolf : Enemy {
     //Overrided to initialize the variables.
     protected override void Start()
     {
-        this.myAttack = new Attack(10, 1, "Bite");
+        this.myAttack = new Attack(20, 1, "Ferocious Bite");
         this.health = 50;
         this.moveLimit = 2;
         this.actionPoints = 2;
@@ -37,6 +37,27 @@ public class Wolf : Enemy {
     public override void dealDamage(Combatable target, float damage)
     {
         Debug.Log("this gets called");
+        bool trait = false;
+        TileCoords targetCoords = myCurrentTile.getCoords();
+        GameObject[] neighborWolf = GameObject.FindGameObjectsWithTag("Wolf");
+        if (neighborWolf.Length > 0)
+        {
+            for (GameObject wolf in neighborWolf)
+            {
+                TileCoords wolfCoords = tileMap.getTile(wolf.transform.position).getCoords();
+                float dx = Mathf.Abs(wolfCoords.x - targetCoords.x);
+                float dy = Mathf.Abs(wolfCoords.z - targetCoords.z);
+                int manhattanDistance = Mathf.FloorToInt(dx + dy);
+                if (manhattanDistance <= 4)
+                {
+                    trait = true;
+                }
+            }
+        }
+        if (trait)
+        {
+            damage = damage * 1.2f;
+        }
         target.takeDamage(damage);
     }
 

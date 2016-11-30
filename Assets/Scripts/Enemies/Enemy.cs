@@ -15,10 +15,13 @@ public abstract class Enemy : MonoBehaviour, Combatable {
     protected int moveLimit;
     protected int actionPoints;
     protected Attack myAttack;
+    protected int biteDuration;
+    protected bool damageOverTime;
+
     //also need to add my attacks
 
-	// Use this for initialization
-	protected virtual void Start () {
+    // Use this for initialization
+    protected virtual void Start () {
         this.player = GameManager.instance.player;
         this.tileMap = GameManager.instance.tileMap;
     }
