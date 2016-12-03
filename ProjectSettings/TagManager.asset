@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - WorldUI
+  - Wolf
   layers:
   - Default
   - TransparentFX

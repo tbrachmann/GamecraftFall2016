@@ -42,7 +42,7 @@ public class Wolf : Enemy {
         GameObject[] neighborWolf = GameObject.FindGameObjectsWithTag("Wolf");
         if (neighborWolf.Length > 0)
         {
-            for (GameObject wolf in neighborWolf)
+            foreach(GameObject wolf in neighborWolf)
             {
                 TileCoords wolfCoords = tileMap.getTile(wolf.transform.position).getCoords();
                 float dx = Mathf.Abs(wolfCoords.x - targetCoords.x);

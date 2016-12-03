@@ -28,11 +28,11 @@ public class Raccoon : Enemy
         GameObject[] neighborRaccoon = GameObject.FindGameObjectsWithTag("Raccoon");
         if (neighborRaccoon.Length > 0)
         {
-            for (GameObject raccoon in neighborRaccoon)
+            foreach(GameObject raccoon in neighborRaccoon)
             {
                 TileCoords raccoonCoords = tileMap.getTile(raccoon.transform.position).getCoords();
-                float dx = Mathf.Abs(raccoonCoords.x - targetCoords.x);
-                float dy = Mathf.Abs(raccoonCoords.z - targetCoords.z);
+                float neighborDx = Mathf.Abs(raccoonCoords.x - targetCoords.x);
+                float neighborDy = Mathf.Abs(raccoonCoords.z - targetCoords.z);
                 int traitManhattanDistance = Mathf.FloorToInt(dx + dy);
                 if (traitManhattanDistance <= 4)
                 {
