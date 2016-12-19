@@ -126,8 +126,8 @@ public class PlayerController : MonoBehaviour, Combatable {
     }
 
     public void takeDamage(float damage) {
+        Debug.Log("Player took damage of " + damage + "!");
         health -= damage;
-        Debug.Log(health);
     }
 
     //The state at the start of the turn.
@@ -219,7 +219,7 @@ public class PlayerController : MonoBehaviour, Combatable {
         {
             myLine.enabled = true;
             myLine.numPositions = preparePath.Count;
-            myLine.SetPositions(preparePath.Select(l => new Vector3(l.getCoords().x + 0.5f, 0.01f, l.getCoords().z + 0.5f)).ToArray());
+            myLine.SetPositions(preparePath.Select(l => new Vector3(l.getCoords().x + 0.5f, 0.015f, l.getCoords().z + 0.5f)).ToArray());
         }
 
         private void DrawPossibleMoves()
@@ -379,6 +379,8 @@ public class PlayerController : MonoBehaviour, Combatable {
         int range;
         Enemy target;
         Attack myAttack;
+        LineRenderer targetingReticle;
+        Vector3 targetedPoint;
 
 
         public Targeting(PlayerController controller, Attack attack)
@@ -386,18 +388,37 @@ public class PlayerController : MonoBehaviour, Combatable {
             this.controller = controller;
             this.myAttack = attack;
             this.range = attack.getRange();
+            this.targetingReticle = controller.cursor.gameObject.GetComponent<LineRenderer>();
+            targetingReticle.startColor = Color.white;
+            targetingReticle.endColor = Color.white;
+            targetingReticle.startWidth = 0.1f;
+            targetingReticle.endWidth = 0.1f;
+            targetingReticle.enabled = false;
         }
 
         public void Enter()
         {
             target = GameObject.Find("Enemy").GetComponent<Enemy>();
             //Activate targeting reticle.
+            targetingReticle.enabled = true;
         }
 
         public void Update()
         {
             //do all the GUI stuff here
             //reticle, etc.
+            targetingReticle.numPositions = 2;
+            Vector3 playerPos = controller.gameObject.transform.position;
+            playerPos.y = 0.01f;
+            Vector3 mousePos = controller.floorPos.point;
+            mousePos.y = 0.01f;
+            Vector3 delta3 = mousePos - playerPos;
+            if (delta3.magnitude > myAttack.getRange()) {
+                delta3 = delta3.normalized * myAttack.getRange();
+            }
+            targetedPoint = playerPos + delta3;
+            Vector3[] linePositions = new Vector3[] { playerPos, targetedPoint };
+            targetingReticle.SetPositions(linePositions);
         }
 
         public PlayerState HandleInput()
@@ -405,22 +426,14 @@ public class PlayerController : MonoBehaviour, Combatable {
             //TODO: check if target is inRange and valid
             if (Input.GetMouseButtonDown(0))
             {
-                TileCoords playerCoords = controller.playerCurrentTile.getCoords();
-                TileCoords targetCoords = controller.tileMap.getTile(target.transform.position).getCoords();
-                float dx = Mathf.Abs(playerCoords.x - targetCoords.x);
-                float dy = Mathf.Abs(playerCoords.z - targetCoords.z);
-                int euclideanDistance = Mathf.FloorToInt(Mathf.Sqrt((dx * dx) + (dy * dy)));
-                if (euclideanDistance <= range)
-                {
-                    //carry out attack
+                //TileCoords playerCoords = controller.playerCurrentTile.getCoords();
+                Tile targetTile = controller.tileMap.getTile(targetedPoint);
+                Enemy target = GameManager.instance.getEnemyOnTile(targetTile);
+                if (target != null) {
                     controller.dealDamage(target, myAttack.getDamage());
                     controller.myActionPoints -= 1;
                     return new WaitingForInput(controller);
                 }
-                //get the target
-                //return new Attacking(controller, attack, target);
-                //do we even need a state for this? can just carry 
-                //out the attack right here
             }
             else {
                 return null;
@@ -434,6 +447,7 @@ public class PlayerController : MonoBehaviour, Combatable {
         public void Exit()
         {
             //Deactivate targeting reticle.
+            targetingReticle.enabled = false;
         }
 
     }
@@ -487,7 +501,6 @@ public class PlayerController : MonoBehaviour, Combatable {
             /*Since each state returns to WaitingForInput when its finished,
             we'll just check if the turn is over and end it in here. */
             if (controller.myActionPoints == 0) {
-                Debug.Log("does this ever win");
                 GameManager.instance.playerTurn = false;
             }
         }

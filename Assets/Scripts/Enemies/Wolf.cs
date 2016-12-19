@@ -36,7 +36,6 @@ public class Wolf : Enemy {
 
     public override void dealDamage(Combatable target, float damage)
     {
-        Debug.Log("this gets called");
         bool trait = false;
         TileCoords targetCoords = myCurrentTile.getCoords();
         GameObject[] neighborWolf = GameObject.FindGameObjectsWithTag("Wolf");
@@ -63,6 +62,7 @@ public class Wolf : Enemy {
 
     public override void takeDamage(float damage)
     {
+        Debug.Log("Enemy took damage of " + damage + "!");
         health -= damage;
     }
 }

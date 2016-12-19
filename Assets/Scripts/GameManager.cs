@@ -8,7 +8,7 @@ class GameManager : MonoBehaviour {
 	public static GameManager instance;
 	[HideInInspector]public PlayerController player;
     [HideInInspector]public GameObject board;
-    //public List<Enemy> enemies;
+    public List<Enemy> enemies;
     [HideInInspector]public TileMap tileMap;
     [HideInInspector]public bool playerTurn = true;
 
@@ -21,6 +21,8 @@ class GameManager : MonoBehaviour {
 		}
 		board = GameObject.Find("Board");
 		player = GameObject.Find("Player").GetComponentInChildren<PlayerController>();
+        GameObject[] enemiesGOs = GameObject.FindGameObjectsWithTag("Enemy");
+        enemies = new List<Enemy>(enemiesGOs.Select(l => (Enemy) l.GetComponentInChildren<MonoBehaviour>()));
 		tileMap = board.GetComponent<TileMap>();
         //Build the board.
         //Set player position to playerStart
@@ -40,5 +42,14 @@ class GameManager : MonoBehaviour {
 	public TileMap getTileMap() {
 		return tileMap;
 	}
+
+    public Enemy getEnemyOnTile(Tile tile) {
+        foreach (Enemy enemy in enemies) {
+            if (enemy.myCurrentTile == tile) {
+                return enemy;
+            }
+        }
+        return null;
+    }
 
 }

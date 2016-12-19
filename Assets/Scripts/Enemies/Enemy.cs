@@ -8,7 +8,7 @@ public abstract class Enemy : MonoBehaviour, Combatable {
     protected PlayerController player;
     protected TileMap tileMap;
     protected PlayerState myState = null;
-    protected Tile myCurrentTile;
+    public Tile myCurrentTile;
     public bool myTurn = false;
     protected bool stateFinished = false;
     protected float health;
