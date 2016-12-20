@@ -6,15 +6,18 @@ using UnityEngine.UI;
 public class PlayerController : MonoBehaviour, Combatable {
 
     Rigidbody player;
-    Transform cursor;
+    RectTransform cursor;
     PlayerState myState;
     public Tile playerCurrentTile;
     //public GameObject TileMapObj;
     //set these to be children of the player
     GameObject drawMovesHelper;
-    GameObject drawMoves;
-    Image drawMovesImage;
-    LineRenderer myLine;
+    RectTransform drawMoves;
+    List<RectTransform> drawMovesChildImages = new List<RectTransform>();
+    RectTransform drawPath;
+    List<RectTransform> drawPathChildImages = new List<RectTransform>();
+    RectTransform targetingReticle;
+    RectTransform targetingReticleImage;
     //Flag for a finished state if it doesn't end on input.
     bool stateFinished = false;
     //public bool myTurn = false;
@@ -56,27 +59,31 @@ public class PlayerController : MonoBehaviour, Combatable {
 
     // Use this for initialization
     void Start () {
-        drawMovesHelper = GameObject.Find("DrawMovesHelper");
-        drawMoves = drawMovesHelper.transform.GetChild(0).gameObject;
-        drawMovesImage = drawMoves.transform.GetComponentInChildren<Image>();
-        myLine = gameObject.GetComponent<LineRenderer>();
+        //drawMovesHelper = GameObject.Find("DrawMovesHelper");
+        //drawMoves = drawMovesHelper.transform.GetChild(0).gameObject;
+        //drawMovesImage = drawMoves.transform.GetComponentInChildren<Image>();
+        drawMoves = (RectTransform) GameObject.Find("DrawMoves").transform;
+        //drawMovesChildImages = drawMoves.gameObject.GetComponentsInChildren<RectTransform>(true);
+        foreach (Transform child in drawMoves.transform) {
+            drawMovesChildImages.Add((RectTransform)child.transform);
+        }
+        drawPath = (RectTransform) GameObject.Find("DrawPath").transform;
+        //drawPathChildImages = drawPath.gameObject.GetComponentsInChildren<RectTransform>(true);
+        foreach (Transform child in drawPath.transform) {
+            drawPathChildImages.Add((RectTransform)child.transform);
+        }
+        targetingReticle = (RectTransform)GameObject.Find("TargetingReticle").transform;
+        targetingReticleImage = (RectTransform)targetingReticle.GetChild(0).transform;
         player = gameObject.GetComponent<Rigidbody>();
-        cursor = GameObject.Find("CursorHelper").GetComponent<Transform>();
+        cursor = (RectTransform) GameObject.Find("Cursor").transform;
         mainCam = FindObjectOfType<Camera>();
         //try to get all references here so that you don't have to 
         tileMap = GameManager.instance.getTileMap();
-        //Instantiate myLine and disable it - now only State ReadyToMove
-        //will deal with it.
-        myLine.startColor = Color.white;
-        myLine.endColor = Color.white;
-        myLine.startWidth = 0.1f;
-        myLine.endWidth = 0.1f;
-        myLine.enabled = false;
         //Same with drawMoves
-        Color myColor = drawMovesImage.color;
-        myColor.a = 0.5f;
-        drawMovesImage.color = myColor;
-        drawMoves.SetActive(false);
+        //Color myColor = drawMovesImage.color;
+        //myColor.a = 0.5f;
+        //drawMovesImage.color = myColor;
+        //drawMoves.gameObject.SetActive(false);
         //The state to start out in. Waiting for input!
         myState = new WaitingForInput(this);
         playerCurrentTile = tileMap.getTile(player.transform.position);
@@ -144,10 +151,9 @@ public class PlayerController : MonoBehaviour, Combatable {
         List<GameObject> movesUI = new List<GameObject>();
         //The tile to instantiate when drawing moves.
         GameObject drawMovesHelper;
-        GameObject drawMoves;
+        RectTransform drawMoves;
         Image drawMovesImage;
         Vector3 playerPos;
-        LineRenderer myLine;
         LinkedList<Tile> preparePath;
         List<Tile> possibleMoves;
         Tile playerTile;
@@ -159,7 +165,6 @@ public class PlayerController : MonoBehaviour, Combatable {
             this.controller = controller;
             drawMovesHelper = controller.drawMovesHelper;
             drawMoves = controller.drawMoves;
-            myLine = controller.myLine;
         }
 
         public void Enter() {
@@ -191,7 +196,10 @@ public class PlayerController : MonoBehaviour, Combatable {
                     preparePath = FindShortestPath(controller.playerCurrentTile, cursorTile);
                     DrawPath();
                 } else {
-                    myLine.enabled = false;
+                    foreach (RectTransform r in controller.drawPathChildImages)
+                    {
+                        r.gameObject.SetActive(false);
+                    }
                 } 
             }
         }
@@ -201,7 +209,6 @@ public class PlayerController : MonoBehaviour, Combatable {
             //Share the line with player so that the next state can access it.
             //Turn off possible movement grid and path line.
             RemovePossibleMoves();
-            myLine.enabled = false;
         }
 
         public PlayerState HandleInput()
@@ -209,7 +216,7 @@ public class PlayerController : MonoBehaviour, Combatable {
             if (Input.GetKeyDown(KeyCode.M)) {
                 return new WaitingForInput(controller);
             }
-            if (Input.GetMouseButtonDown(0) && myLine.enabled) {
+            if (Input.GetMouseButtonDown(0) && tileMap.getTile(controller.floorPos.point) == preparePath.Last.Value) {
                 return new Moving(controller);
             }
             return null;
@@ -217,37 +224,64 @@ public class PlayerController : MonoBehaviour, Combatable {
 
         void DrawPath()
         {
-            myLine.enabled = true;
-            myLine.numPositions = preparePath.Count;
-            myLine.SetPositions(preparePath.Select(l => new Vector3(l.getCoords().x + 0.5f, 0.015f, l.getCoords().z + 0.5f)).ToArray());
+            foreach (RectTransform r in controller.drawPathChildImages) {
+                r.gameObject.SetActive(false);
+            }
+            RectTransform prevLine = null;
+            IEnumerator<RectTransform> lineEnumerator = controller.drawPathChildImages.GetEnumerator();
+            IEnumerator<Tile> pathEnumerator = preparePath.GetEnumerator();
+            pathEnumerator.MoveNext();
+            Vector3 prevCoord = pathEnumerator.Current.coordsToVector3();
+            while (lineEnumerator.MoveNext() && pathEnumerator.MoveNext()) {
+                Vector3 nextCoord = pathEnumerator.Current.coordsToVector3();
+                RectTransform currLine = lineEnumerator.Current;
+                if (prevLine == null) prevLine = currLine;
+                currLine.gameObject.SetActive(true);
+                Vector3 rootPoint = new Vector3(prevCoord.x + .5f, 0, prevCoord.z + .5f);
+                currLine.transform.position = rootPoint;
+                Vector3 differenceVector = nextCoord - prevCoord;
+                float angle = Mathf.Atan2(differenceVector.z, differenceVector.x) * Mathf.Rad2Deg;
+                //its hacky but it works!!
+                currLine.rotation = Quaternion.AngleAxis(angle, Vector3.down);
+                currLine.Rotate(90, 0, 0);
+                if (angle != 0) {
+                    prevLine.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 1050);
+                }
+                prevCoord = nextCoord;
+                prevLine = currLine;
+            }
         }
 
         private void DrawPossibleMoves()
         {
-            drawMoves.SetActive(true);
+            //drawMoves.gameObject.SetActive(true);
             //RectTransform imagePos = drawMoves.canvas.GetComponent<RectTransform>();
             possibleMoves = CalculateMoveLimits(playerTile, new HashSet<Tile>()).ToList();
-            IEnumerator<Tile> myEnumerator = possibleMoves.GetEnumerator();
+            IEnumerator<Tile> tileEnumerator = possibleMoves.GetEnumerator();
+            IEnumerator<RectTransform> imageEnumerator = controller.drawMovesChildImages.GetEnumerator();
             //instantiate all possible moves and then go through list and enable
-            while (myEnumerator.MoveNext())
+            while (tileEnumerator.MoveNext() && imageEnumerator.MoveNext())
             {
                 //print(returnList[i]);
-                TileCoords currentCoords = myEnumerator.Current.getCoords();
-                GameObject moveSquare = GameObject.Instantiate(drawMoves, drawMovesHelper.transform);
+                TileCoords currentCoords = tileEnumerator.Current.getCoords();
+                //GameObject moveSquare = GameObject.Instantiate(drawMoves.gameObject, drawMovesHelper.transform);
+                RectTransform moveSquare = imageEnumerator.Current;
                 //y = 0.0001f so that its just off the floor
-                moveSquare.transform.position = new Vector3(currentCoords.x + 0.5f, 0.0001f, currentCoords.z + 0.5f);
-                movesUI.Add(moveSquare);
+                moveSquare.transform.position = new Vector3(currentCoords.x, 0, currentCoords.z);
+                moveSquare.gameObject.SetActive(true);
+                //movesUI.Add(moveSquare);
             }
-            drawMoves.SetActive(false);
+            //drawMoves.gameObject.SetActive(false);
         }
 
         void RemovePossibleMoves()
         {
-            foreach (GameObject r in movesUI)
+            foreach (RectTransform r in controller.drawMovesChildImages)
             {
-                Destroy(r);
+                //Destroy(r);
+                r.gameObject.SetActive(false);
             }
-            movesUI.Clear();
+            //movesUI.Clear();
             possibleMoves.Clear();
             //drawMoves.enabled = false;
         }
@@ -255,7 +289,6 @@ public class PlayerController : MonoBehaviour, Combatable {
 
     private class Moving : PlayerState
     {
-        LineRenderer myLine;
         LinkedList<Tile> myPath;
         LinkedListNode<Tile> nextTile;
         Transform player;
@@ -269,8 +302,6 @@ public class PlayerController : MonoBehaviour, Combatable {
         public void Enter()
         {
             player = controller.gameObject.transform.parent;
-            myLine = controller.gameObject.GetComponent<LineRenderer>();
-            myLine.enabled = true;
             myPath = controller.path;
             nextTile = myPath.First;
             controller.myActionPoints -= 1;
@@ -278,7 +309,10 @@ public class PlayerController : MonoBehaviour, Combatable {
 
         public void Exit()
         {
-            myLine.enabled = false;
+            foreach (RectTransform r in controller.drawPathChildImages)
+            {
+                r.gameObject.SetActive(false);
+            }
         }
 
         public void Update()
@@ -379,35 +413,28 @@ public class PlayerController : MonoBehaviour, Combatable {
         int range;
         Enemy target;
         Attack myAttack;
-        LineRenderer targetingReticle;
         Vector3 targetedPoint;
+        RectTransform targetingReticle;
 
 
         public Targeting(PlayerController controller, Attack attack)
         {
             this.controller = controller;
+            this.targetingReticle = controller.targetingReticleImage;
             this.myAttack = attack;
             this.range = attack.getRange();
-            this.targetingReticle = controller.cursor.gameObject.GetComponent<LineRenderer>();
-            targetingReticle.startColor = Color.white;
-            targetingReticle.endColor = Color.white;
-            targetingReticle.startWidth = 0.1f;
-            targetingReticle.endWidth = 0.1f;
-            targetingReticle.enabled = false;
         }
 
         public void Enter()
         {
             target = GameObject.Find("Enemy").GetComponent<Enemy>();
             //Activate targeting reticle.
-            targetingReticle.enabled = true;
         }
 
         public void Update()
         {
             //do all the GUI stuff here
             //reticle, etc.
-            targetingReticle.numPositions = 2;
             Vector3 playerPos = controller.gameObject.transform.position;
             playerPos.y = 0.01f;
             Vector3 mousePos = controller.floorPos.point;
@@ -417,8 +444,13 @@ public class PlayerController : MonoBehaviour, Combatable {
                 delta3 = delta3.normalized * myAttack.getRange();
             }
             targetedPoint = playerPos + delta3;
-            Vector3[] linePositions = new Vector3[] { playerPos, targetedPoint };
-            targetingReticle.SetPositions(linePositions);
+            targetingReticle.gameObject.SetActive(true);
+            targetingReticle.position = playerPos;
+            float angle = Mathf.Atan2(delta3.z, delta3.x) * Mathf.Rad2Deg;
+            //its hacky but it works!!
+            targetingReticle.rotation = Quaternion.AngleAxis(angle, Vector3.down);
+            targetingReticle.Rotate(90, 0, 0);
+            targetingReticle.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, delta3.magnitude * 1000f);
         }
 
         public PlayerState HandleInput()
@@ -447,7 +479,6 @@ public class PlayerController : MonoBehaviour, Combatable {
         public void Exit()
         {
             //Deactivate targeting reticle.
-            targetingReticle.enabled = false;
         }
 
     }
@@ -531,6 +562,7 @@ public class PlayerController : MonoBehaviour, Combatable {
                 return new ReadyToMove(controller.tileMap, controller);
             }
             if (Input.GetKeyDown(KeyCode.A)) {
+                Debug.Log("does it get here?");
                 return new ReadyToAttack(controller);
             }
             return null;

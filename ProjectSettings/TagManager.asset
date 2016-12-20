@@ -6,6 +6,7 @@ TagManager:
   tags:
   - WorldUI
   - Wolf
+  - Enemy
   layers:
   - Default
   - TransparentFX
