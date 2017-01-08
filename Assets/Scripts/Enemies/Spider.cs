@@ -23,8 +23,8 @@ public class Spider : Enemy
     //Roshan: implement AI here.
     protected override PlayerState getBestMove()
     {
-        TileCoords playerCoords = player.playerCurrentTile.getCoords();
-        TileCoords targetCoords = myCurrentTile.getCoords();
+        TileCoords playerCoords = player.playerCurrentTile;
+        TileCoords targetCoords = myCurrentTile;
         float dx = Mathf.Abs(playerCoords.x - targetCoords.x);
         float dy = Mathf.Abs(playerCoords.z - targetCoords.z);
         int manhattanDistance = Mathf.FloorToInt(dx + dy);

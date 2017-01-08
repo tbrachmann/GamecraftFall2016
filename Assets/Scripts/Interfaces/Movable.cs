@@ -14,29 +14,29 @@ public abstract class Movable
         this.tileMap = tileMap;
     }
 
-    protected LinkedList<Tile> FindShortestPath(Tile start, Tile goal)
+    protected LinkedList<TileCoords> FindShortestPath(TileCoords start, TileCoords goal)
     {
         //print("start: " + start + " " + "goal: " + goal);
-        HashSet<Tile> closedSet = new HashSet<Tile>();
-        PriorityQueue openSet = new PriorityQueue(new List<Tile>() { start });
+        HashSet<TileCoords> closedSet = new HashSet<TileCoords>();
+        PriorityQueue openSet = new PriorityQueue(new List<TileCoords>() { start });
         TileCoords[] neighbors = { TileCoords.right, TileCoords.forward, TileCoords.left, TileCoords.back };
         //Node -> the node that it can most efficiently be reached from
-        Dictionary<Tile, Tile> cameFrom = new Dictionary<Tile, Tile> { };
+        Dictionary<TileCoords, TileCoords> cameFrom = new Dictionary<TileCoords, TileCoords> { };
         //Node -> "cost" from getting from start to this node
         //default value of infinity
-        Dictionary<Tile, float> gScore = new Dictionary<Tile, float> { };
+        Dictionary<TileCoords, float> gScore = new Dictionary<TileCoords, float> { };
         //gScore.Add(start, 0);
         gScore[start] = 0;
         //Node -> the "score" of getting from start node to goal through this node
         //default value of infinity
-        Dictionary<Tile, float> fScore = new Dictionary<Tile, float> { };
+        Dictionary<TileCoords, float> fScore = new Dictionary<TileCoords, float> { };
         fScore[start] = ManhattanHeuristic(start, goal);
         while (openSet.Count != 0)
         {
             //Aggregate - like python map? - was so proud of this but it turned out to be useless
             //Vector3 current = 
             // fScore.Aggregate((key, nextKey) => key.Value < nextKey.Value ? key : nextKey).Key;
-            Tile current = openSet.First.Value;
+            TileCoords current = openSet.First.Value;
             //print("current: " + current);
             if (current == goal)
             {
@@ -46,19 +46,19 @@ public abstract class Movable
             closedSet.Add(current);
             //When implementing obstacles, just need to check if each neighbor is valid:
             //if its traversable or not
-            Tile[] currentNeighbors = neighbors.Select(l => tileMap.getTile(l + current.getCoords())).ToArray<Tile>();
-            foreach (Tile neighbor in currentNeighbors)
+            TileCoords[] currentNeighbors = neighbors.Select(l => l + current).ToArray<TileCoords>();
+            foreach (TileCoords neighbor in currentNeighbors)
             {
+                Tile neighborTile = tileMap.getTile(neighbor);
                 if (closedSet.Contains(neighbor))
                 {
                     //print("already in closed set:" + neighbor);
                     continue;
                 }
-                else if (neighbor == null)
-                {
+                else if (neighborTile == null) {
                     continue;
                 }
-                else if (!neighbor.isTraversable())
+                else if (!neighborTile.isTraversable())
                 {
                     continue;
                 }
@@ -91,9 +91,9 @@ public abstract class Movable
     }
 
     //Helper method for FindShortestPath.
-    protected LinkedList<Tile> ReconstructPath(Dictionary<Tile, Tile> previousNode, Tile current)
+    protected LinkedList<TileCoords> ReconstructPath(Dictionary<TileCoords, TileCoords> previousNode, TileCoords current)
     {
-        LinkedList<Tile> totalPath = new LinkedList<Tile>();
+        LinkedList<TileCoords> totalPath = new LinkedList<TileCoords>();
         totalPath.AddFirst(current);
         while (previousNode.Select((l, r) => l.Key).Contains(current))
         {
@@ -104,18 +104,16 @@ public abstract class Movable
     }
 
     //Heuristic method for FindShortestPath.
-    protected float ManhattanHeuristic(Tile node, Tile goal)
+    protected float ManhattanHeuristic(TileCoords node, TileCoords goal)
     {
-        TileCoords nodeCoords = node.getCoords();
-        TileCoords goalCoords = node.getCoords();
-        float dx = Mathf.Abs(nodeCoords.x - goalCoords.x);
-        float dy = Mathf.Abs(nodeCoords.z - goalCoords.z);
+        float dx = Mathf.Abs(node.x - goal.x);
+        float dy = Mathf.Abs(node.z - goal.z);
         return 1 * (dx + dy);
     }
 
     /*Use this to find all available moves, taking movelimits into account. Can we pre-bake this into the coming A* 
      * algorithm to make sure that it only selects from available moves?*/
-    protected HashSet<Tile> CalculateMoveLimits(Tile current, HashSet<Tile> visited, int limit = 3)
+    protected HashSet<TileCoords> CalculateMoveLimits(TileCoords current, HashSet<TileCoords> visited, int limit = 3)
     {
         if (limit == 0)
         {
@@ -125,16 +123,17 @@ public abstract class Movable
         visited.Add(current);
         limit -= 1;
         //if right in visited - don't add else rightVect
-        //Tile rightVect = new Tile(current.x + 1, current.y, current.z);
-        HashSet<Tile> rightVisited = null;
-        HashSet<Tile> leftVisited = null;
-        HashSet<Tile> upVisited = null;
-        HashSet<Tile> downVisited = null;
-        //also check if each new tile is traversable or not
-        Tile rightTile = tileMap.getTile(current.getCoords() + TileCoords.right);
-        if (rightTile != null && rightTile.isTraversable())
+        //TileCoords rightVect = new TileCoords(current.x + 1, current.y, current.z);
+        HashSet<TileCoords> rightVisited = null;
+        HashSet<TileCoords> leftVisited = null;
+        HashSet<TileCoords> upVisited = null;
+        HashSet<TileCoords> downVisited = null;
+        //also check if each new TileCoords is traversable or not
+        TileCoords rightTile = current + TileCoords.right;
+        Tile rightTileCheck = tileMap.getTile(rightTile);
+        if (rightTileCheck != null && rightTileCheck.isTraversable())
         {
-            rightVisited = new HashSet<Tile>() { };
+            rightVisited = new HashSet<TileCoords>() { };
             rightVisited.UnionWith(visited);
             if (!(visited.Contains(rightTile)))
             {
@@ -143,11 +142,12 @@ public abstract class Movable
 
         }
         //if left in visited - don't add else leftVect
-        //Tile leftVect = new Tile(current.x, current.y, current.z + 1);
-        Tile leftTile = tileMap.getTile(current.getCoords() + TileCoords.left);
-        if (leftTile != null && leftTile.isTraversable())
+        //TileCoords leftVect = new TileCoords(current.x, current.y, current.z + 1);
+        TileCoords leftTile = current + TileCoords.left;
+        Tile leftTileCheck = tileMap.getTile(leftTile);
+        if (leftTileCheck != null && leftTileCheck.isTraversable())
         {
-            leftVisited = new HashSet<Tile>() { };
+            leftVisited = new HashSet<TileCoords>() { };
             leftVisited.UnionWith(visited);
             if (!(visited.Contains(leftTile)))
             {
@@ -156,11 +156,12 @@ public abstract class Movable
 
         }
         //if up in visited - don't add else upVect
-        //Tile upVect = new Tile(current.x + 1, current.y, current.z + 1);
-        Tile upTile = tileMap.getTile(current.getCoords() + TileCoords.forward);
-        if (upTile != null && upTile.isTraversable())
+        //TileCoords upVect = new TileCoords(current.x + 1, current.y, current.z + 1);
+        TileCoords upTile = current + TileCoords.forward;
+        Tile upTileCheck = tileMap.getTile(upTile);
+        if (upTileCheck != null && upTileCheck.isTraversable())
         {
-            upVisited = new HashSet<Tile>() { };
+            upVisited = new HashSet<TileCoords>() { };
             upVisited.UnionWith(visited);
             if (!(visited.Contains(upTile)))
             {
@@ -169,11 +170,12 @@ public abstract class Movable
 
         }
         //if down in visited - don't add else downVect
-        //Tile downVect = new Tile(current.x - 1, current.y, current.z - 1);
-        Tile downTile = tileMap.getTile(current.getCoords() + TileCoords.back);
-        if (downTile != null && downTile.isTraversable())
+        //TileCoords downVect = new TileCoords(current.x - 1, current.y, current.z - 1);
+        TileCoords downTile = current + TileCoords.back;
+        Tile downTileCheck = tileMap.getTile(downTile);
+        if (downTileCheck != null && downTileCheck.isTraversable())
         {
-            downVisited = new HashSet<Tile>() { };
+            downVisited = new HashSet<TileCoords>() { };
             downVisited.UnionWith(visited);
             if (!(visited.Contains(downTile)))
             {

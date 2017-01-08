@@ -8,7 +8,7 @@ public abstract class Enemy : MonoBehaviour, Combatable {
     protected PlayerController player;
     protected TileMap tileMap;
     protected PlayerState myState = null;
-    public Tile myCurrentTile;
+    public TileCoords myCurrentTile;
     public bool myTurn = false;
     protected bool stateFinished = false;
     protected float health;
@@ -28,7 +28,7 @@ public abstract class Enemy : MonoBehaviour, Combatable {
 	
 	// Update is called once per frame
 	protected void Update () {
-        myCurrentTile = tileMap.getTile(gameObject.transform.position);
+        myCurrentTile = new TileCoords(gameObject.transform.position);
         if (GameManager.instance.playerTurn)
         {
             actionPoints = 2;
@@ -62,23 +62,20 @@ public abstract class Enemy : MonoBehaviour, Combatable {
     {
         Enemy controller;
         Transform enemy;
-        Transform player;
-        LinkedList<Tile> path;
-        LinkedListNode<Tile> nextTile;
+        LinkedList<TileCoords> path;
+        LinkedListNode<TileCoords> nextTile;
         int moveLimit;
 
         public EnemyMoving(TileMap tileMap, Enemy controller) : base(tileMap)
         {
-            this.moveLimit = controller.moveLimit;
             this.controller = controller;
-            this.player = controller.player.transform;
             this.enemy = controller.transform.parent;
+            this.moveLimit = controller.moveLimit;
         }
 
         public void Enter()
         {
-            Tile playerTile = tileMap.getTile(player.position);
-            path = FindShortestPath(controller.myCurrentTile, playerTile);
+            path = FindShortestPath(controller.myCurrentTile, controller.player.playerCurrentTile);
             /*foreach (Tile t in path) {
                 Debug.Log(t.getCoords());
             }*/
@@ -98,8 +95,8 @@ public abstract class Enemy : MonoBehaviour, Combatable {
 
         public void Update()
         {
-            Vector3 nextTilePos = nextTile.Value.coordsToVector3();
-            if (nextTilePos == tileMap.getTile(player.position).coordsToVector3()) {
+            TileCoords nextTilePos = nextTile.Value;
+            /*if (nextTilePos == tileMap.getTile(player.position).coordsToVector3()) {
                 controller.stateFinished = true;
                 nextTile = null;
             }
@@ -120,6 +117,17 @@ public abstract class Enemy : MonoBehaviour, Combatable {
             if (nextTile == null)
             {
                 controller.stateFinished = true;
+            }*/
+            Quaternion rotation = Quaternion.LookRotation(new Vector3(nextTilePos.x, 0, nextTilePos.z) - enemy.position);
+            enemy.GetComponentInChildren<Rigidbody>().rotation = rotation;
+            if (controller.tileMap.moveTransformTowardsTile(enemy, nextTilePos))
+            {
+                nextTile = nextTile.Next;
+                if (nextTile == null || moveLimit == 0)
+                {
+                    controller.stateFinished = true;
+                }
+                moveLimit--;
             }
         }
     }

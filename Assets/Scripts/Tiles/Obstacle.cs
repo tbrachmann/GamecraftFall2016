@@ -7,10 +7,8 @@ using System;
 
 public class Obstacle : Tile
 {
-	/*public FloorTile() : base(Tile.TileType.Floor)
-	{}*/
 
-	public Obstacle(TileCoords coords) : base(coords, Tile.TileType.Obstacle)
+	public Obstacle()
 	{
 		this.traversable = false; 
 	}

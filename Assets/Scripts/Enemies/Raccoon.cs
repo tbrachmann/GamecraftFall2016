@@ -19,8 +19,8 @@ public class Raccoon : Enemy
     //@Roshan: implement AI here.
     protected override PlayerState getBestMove()
     {
-        TileCoords playerCoords = player.playerCurrentTile.getCoords();
-        TileCoords targetCoords = myCurrentTile.getCoords();
+        TileCoords playerCoords = player.playerCurrentTile;
+        TileCoords targetCoords = myCurrentTile;
         float dx = Mathf.Abs(playerCoords.x - targetCoords.x);
         float dy = Mathf.Abs(playerCoords.z - targetCoords.z);
         int manhattanDistance = Mathf.FloorToInt(dx + dy);
@@ -30,7 +30,7 @@ public class Raccoon : Enemy
         {
             foreach(GameObject raccoon in neighborRaccoon)
             {
-                TileCoords raccoonCoords = tileMap.getTile(raccoon.transform.position).getCoords();
+                TileCoords raccoonCoords = new TileCoords(raccoon.transform.position);
                 float neighborDx = Mathf.Abs(raccoonCoords.x - targetCoords.x);
                 float neighborDy = Mathf.Abs(raccoonCoords.z - targetCoords.z);
                 int traitManhattanDistance = Mathf.FloorToInt(dx + dy);

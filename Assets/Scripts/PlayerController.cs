@@ -5,10 +5,11 @@ using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour, Combatable {
 
-    Rigidbody player;
+    Transform player;
     RectTransform cursor;
+    TileCoords cursorPosition;
     PlayerState myState;
-    public Tile playerCurrentTile;
+    public TileCoords playerCurrentTile;
     //public GameObject TileMapObj;
     //set these to be children of the player
     GameObject drawMovesHelper;
@@ -28,7 +29,7 @@ public class PlayerController : MonoBehaviour, Combatable {
     public float speed = 2f;
     public LayerMask floorMask;
     RaycastHit floorPos;
-    LinkedList<Tile> path;
+    LinkedList<TileCoords> path;
     Ray camRay;
     //bool cursorOnMap;
     TileMap tileMap;
@@ -74,7 +75,7 @@ public class PlayerController : MonoBehaviour, Combatable {
         }
         targetingReticle = (RectTransform)GameObject.Find("TargetingReticle").transform;
         targetingReticleImage = (RectTransform)targetingReticle.GetChild(0).transform;
-        player = gameObject.GetComponent<Rigidbody>();
+        player = gameObject.transform;
         cursor = (RectTransform) GameObject.Find("Cursor").transform;
         mainCam = FindObjectOfType<Camera>();
         //try to get all references here so that you don't have to 
@@ -86,7 +87,8 @@ public class PlayerController : MonoBehaviour, Combatable {
         //drawMoves.gameObject.SetActive(false);
         //The state to start out in. Waiting for input!
         myState = new WaitingForInput(this);
-        playerCurrentTile = tileMap.getTile(player.transform.position);
+        playerCurrentTile = new TileCoords(player.position);
+        cursorPosition = new TileCoords(cursor.position);
     }
 
     public void StartTurn() { }
@@ -104,12 +106,13 @@ public class PlayerController : MonoBehaviour, Combatable {
         if (Physics.Raycast(camRay, out floorPos, floorMask))
         {
             cursor.gameObject.SetActive(true);
-            cursor.position = tileMap.getTile(floorPos.point).coordsToVector3();
+            tileMap.setTransformToTile(cursor, new TileCoords(floorPos.point));
         } else {
             //cursorOnMap = false; 
             cursor.gameObject.SetActive(false);
         }
-        playerCurrentTile = tileMap.getTile(player.transform.position);
+        playerCurrentTile.update(player.position);
+        cursorPosition.update(cursor.position);
         myState.Update();
         if (Input.anyKeyDown || stateFinished) {
             PlayerState nextState = myState.HandleInput();
@@ -120,11 +123,6 @@ public class PlayerController : MonoBehaviour, Combatable {
                 myState.Enter();
             }
         }
-    }
-
-    public float ConvertToFloorUnits(float x) {
-        if (x < 0) return (int)x - 0.5f;
-        else return (int)x + 0.5f;
     }
 
     public void dealDamage(Combatable target, float damage) {
@@ -147,31 +145,19 @@ public class PlayerController : MonoBehaviour, Combatable {
     private class ReadyToMove : Movable, PlayerState
     {
         //The list of tiles drawn on the board to show possible moves.
-        //Y is 0.0001f
-        List<GameObject> movesUI = new List<GameObject>();
-        //The tile to instantiate when drawing moves.
-        GameObject drawMovesHelper;
-        RectTransform drawMoves;
-        Image drawMovesImage;
-        Vector3 playerPos;
-        LinkedList<Tile> preparePath;
-        List<Tile> possibleMoves;
-        Tile playerTile;
-        //Tile cursorTile;
+        LinkedList<TileCoords> preparePath;
+        List<TileCoords> possibleMoves;
         PlayerController controller;
 
-        public ReadyToMove(TileMap tileMap, PlayerController controller) : base(tileMap)
+        public ReadyToMove(PlayerController controller) : base(controller.tileMap)
         {
             this.controller = controller;
-            drawMovesHelper = controller.drawMovesHelper;
-            drawMoves = controller.drawMoves;
         }
 
         public void Enter() {
-            tileMap = controller.tileMap;
             //This needs to be updated every time we enter this state.
             //OR does it get it from player controller update?
-            playerTile = tileMap.getTile(controller.gameObject.GetComponent<Rigidbody>().transform.position);
+            //playerTile = tileMap.getTile(controller.gameObject.GetComponent<Rigidbody>().transform.position);
             //Get the tile that draws the moves (DrawPossibleMoves 
             //will be instantiating this for how many moves there
             //are).
@@ -183,17 +169,16 @@ public class PlayerController : MonoBehaviour, Combatable {
             //Position of the cursor. Set by player controller.
             //Vector3 cursorPos = controller.cursor.transform.position;
             if(controller.cursor.gameObject.activeSelf){
-               Tile cursorTile = tileMap.getTile(controller.cursor.position);    
                 //this isn't really efficient though - instantiating and deleting game objects
                 //we'll leave it as it is right now though, because its well-controlled
                 //possibleMoves = new List<Tile>(movesUI.Select(l => l.position));
                 //Check that the cursor is currently in possible moves.
                 //Is this really necessary? We could draw a white line in possible moves
                 //and then a red line outside.
-                if (possibleMoves.Contains(cursorTile)) {
+                if (possibleMoves.Contains(controller.cursorPosition)) {
                     //Keep the line with Y = 0.0001f so that we can easily draw it.
                     //Vector3 playerPosToMouse = new Vector3(playerPos.x, cursorPos.y, playerPos.z);
-                    preparePath = FindShortestPath(controller.playerCurrentTile, cursorTile);
+                    preparePath = FindShortestPath(controller.playerCurrentTile, controller.cursorPosition);
                     DrawPath();
                 } else {
                     foreach (RectTransform r in controller.drawPathChildImages)
@@ -216,7 +201,7 @@ public class PlayerController : MonoBehaviour, Combatable {
             if (Input.GetKeyDown(KeyCode.M)) {
                 return new WaitingForInput(controller);
             }
-            if (Input.GetMouseButtonDown(0) && tileMap.getTile(controller.floorPos.point) == preparePath.Last.Value) {
+            if (Input.GetMouseButtonDown(0) && new TileCoords(controller.floorPos.point) == preparePath.Last.Value) {
                 return new Moving(controller);
             }
             return null;
@@ -229,17 +214,21 @@ public class PlayerController : MonoBehaviour, Combatable {
             }
             RectTransform prevLine = null;
             IEnumerator<RectTransform> lineEnumerator = controller.drawPathChildImages.GetEnumerator();
-            IEnumerator<Tile> pathEnumerator = preparePath.GetEnumerator();
+            IEnumerator<TileCoords> pathEnumerator = preparePath.GetEnumerator();
             pathEnumerator.MoveNext();
-            Vector3 prevCoord = pathEnumerator.Current.coordsToVector3();
+            TileCoords prevCoord = pathEnumerator.Current;
             while (lineEnumerator.MoveNext() && pathEnumerator.MoveNext()) {
-                Vector3 nextCoord = pathEnumerator.Current.coordsToVector3();
+                TileCoords nextCoord = pathEnumerator.Current;
                 RectTransform currLine = lineEnumerator.Current;
                 if (prevLine == null) prevLine = currLine;
                 currLine.gameObject.SetActive(true);
+                //for some reason the line isn't automatically offset by .5 so I have to do it here manually
+                //will break abstraction until I can figure this out.
                 Vector3 rootPoint = new Vector3(prevCoord.x + .5f, 0, prevCoord.z + .5f);
                 currLine.transform.position = rootPoint;
-                Vector3 differenceVector = nextCoord - prevCoord;
+                Vector3 nextVector = new Vector3(nextCoord.x, 0, nextCoord.z);
+                Vector3 prevVector = new Vector3(prevCoord.x, 0, prevCoord.z);
+                Vector3 differenceVector = nextVector - prevVector;
                 float angle = Mathf.Atan2(differenceVector.z, differenceVector.x) * Mathf.Rad2Deg;
                 //its hacky but it works!!
                 currLine.rotation = Quaternion.AngleAxis(angle, Vector3.down);
@@ -256,14 +245,14 @@ public class PlayerController : MonoBehaviour, Combatable {
         {
             //drawMoves.gameObject.SetActive(true);
             //RectTransform imagePos = drawMoves.canvas.GetComponent<RectTransform>();
-            possibleMoves = CalculateMoveLimits(playerTile, new HashSet<Tile>()).ToList();
-            IEnumerator<Tile> tileEnumerator = possibleMoves.GetEnumerator();
+            possibleMoves = CalculateMoveLimits(controller.playerCurrentTile, new HashSet<TileCoords>()).ToList();
+            IEnumerator<TileCoords> tileEnumerator = possibleMoves.GetEnumerator();
             IEnumerator<RectTransform> imageEnumerator = controller.drawMovesChildImages.GetEnumerator();
             //instantiate all possible moves and then go through list and enable
             while (tileEnumerator.MoveNext() && imageEnumerator.MoveNext())
             {
                 //print(returnList[i]);
-                TileCoords currentCoords = tileEnumerator.Current.getCoords();
+                TileCoords currentCoords = tileEnumerator.Current;
                 //GameObject moveSquare = GameObject.Instantiate(drawMoves.gameObject, drawMovesHelper.transform);
                 RectTransform moveSquare = imageEnumerator.Current;
                 //y = 0.0001f so that its just off the floor
@@ -289,8 +278,8 @@ public class PlayerController : MonoBehaviour, Combatable {
 
     private class Moving : PlayerState
     {
-        LinkedList<Tile> myPath;
-        LinkedListNode<Tile> nextTile;
+        LinkedList<TileCoords> myPath;
+        LinkedListNode<TileCoords> nextTile;
         Transform player;
         PlayerController controller;
 
@@ -317,25 +306,14 @@ public class PlayerController : MonoBehaviour, Combatable {
 
         public void Update()
         {
-            Vector3 nextTilePos = nextTile.Value.coordsToVector3();
-            Quaternion rotation = Quaternion.LookRotation(nextTilePos - player.position);
-            //Debug.Log(rotation.eulerAngles);
-            //Vector3 eulerAngleVelocity = new Vector3(0, 3, 0);
-            //Quaternion deltaRotation = Quaternion.Euler(eulerAngleVelocity * (Time.deltaTime * 3f));
-            //player.GetComponentInChildren<Rigidbody>().MoveRotation(rotation * deltaRotation);
+            TileCoords nextTilePos = nextTile.Value;
+            Quaternion rotation = Quaternion.LookRotation(new Vector3(nextTilePos.x, 0, nextTilePos.z) - player.position);
             player.GetComponentInChildren<Rigidbody>().rotation = rotation;
-            /*if (nextTilePos == null) {
-                controller.stateFinished = true;
-            }*/
-            if(player.position != nextTilePos){
-                //print(player.position + " " + nextTile.Value.coordsToVector3());
-                player.position = Vector3.MoveTowards(player.position, nextTilePos, Time.deltaTime * 3f);
-            }
-            if(player.position == nextTilePos){
+            if (controller.tileMap.moveTransformTowardsTile(player, nextTilePos)) {
                 nextTile = nextTile.Next;
-            }
-            if(nextTile == null){
-                controller.stateFinished = true;
+                if (nextTile == null) {
+                    controller.stateFinished = true;
+                }
             }
         }
 
@@ -459,7 +437,7 @@ public class PlayerController : MonoBehaviour, Combatable {
             if (Input.GetMouseButtonDown(0))
             {
                 //TileCoords playerCoords = controller.playerCurrentTile.getCoords();
-                Tile targetTile = controller.tileMap.getTile(targetedPoint);
+                TileCoords targetTile = new TileCoords(targetedPoint);
                 Enemy target = GameManager.instance.getEnemyOnTile(targetTile);
                 if (target != null) {
                     controller.dealDamage(target, myAttack.getDamage());
@@ -559,7 +537,7 @@ public class PlayerController : MonoBehaviour, Combatable {
             //a combat handler
             if (Input.GetKeyDown(KeyCode.M))
             {
-                return new ReadyToMove(controller.tileMap, controller);
+                return new ReadyToMove(controller);
             }
             if (Input.GetKeyDown(KeyCode.A)) {
                 Debug.Log("does it get here?");

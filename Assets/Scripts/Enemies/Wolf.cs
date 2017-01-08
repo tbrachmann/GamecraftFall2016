@@ -18,8 +18,8 @@ public class Wolf : Enemy {
     //@Roshan: implement AI here.
     protected override PlayerState getBestMove()
     {
-        TileCoords playerCoords = player.playerCurrentTile.getCoords();
-        TileCoords targetCoords = myCurrentTile.getCoords();
+        TileCoords playerCoords = player.playerCurrentTile;
+        TileCoords targetCoords = myCurrentTile;
         float dx = Mathf.Abs(playerCoords.x - targetCoords.x);
         float dy = Mathf.Abs(playerCoords.z - targetCoords.z);
         int manhattanDistance = Mathf.FloorToInt(dx + dy);
@@ -37,13 +37,13 @@ public class Wolf : Enemy {
     public override void dealDamage(Combatable target, float damage)
     {
         bool trait = false;
-        TileCoords targetCoords = myCurrentTile.getCoords();
+        TileCoords targetCoords = myCurrentTile;
         GameObject[] neighborWolf = GameObject.FindGameObjectsWithTag("Wolf");
         if (neighborWolf.Length > 0)
         {
             foreach(GameObject wolf in neighborWolf)
             {
-                TileCoords wolfCoords = tileMap.getTile(wolf.transform.position).getCoords();
+                TileCoords wolfCoords = new TileCoords(wolf.transform.position);
                 float dx = Mathf.Abs(wolfCoords.x - targetCoords.x);
                 float dy = Mathf.Abs(wolfCoords.z - targetCoords.z);
                 int manhattanDistance = Mathf.FloorToInt(dx + dy);

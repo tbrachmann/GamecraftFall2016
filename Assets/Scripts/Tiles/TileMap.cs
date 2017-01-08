@@ -20,14 +20,28 @@ public class TileMap : MonoBehaviour {
     void Awake() {
         //build the tileMap
         TileCoords coords;
+        Tile floor = new Tile();
+        Tile sand = new Sand();
+        Tile water = new Water();
+        Tile spikes = new Spikes();
+        Tile obstacle = new Obstacle();
         for (int i = 0; i < values.Count; i++) {
             coords = new TileCoords(Mathf.FloorToInt(keys[i].x), Mathf.FloorToInt(keys[i].z));
             switch (values[i]) {
                 case "Obstacle":
-                    addTile(new Obstacle(coords));
+                    addTile(coords, obstacle);
+                    break;
+                case "Spikes":
+                    addTile(coords, spikes);
+                    break;
+                case "Water":
+                    addTile(coords, water);
+                    break;
+                case "Sand":
+                    addTile(coords, sand);
                     break;
                 default:
-                    addTile(new FloorTile(coords));
+                    addTile(coords, floor);
                     break;
             }
         }
@@ -38,11 +52,11 @@ public class TileMap : MonoBehaviour {
         return myTiles.Count;
     }
 
-	public void addTile(Tile tile) {
+	public void addTile(TileCoords coords, Tile tile) {
         //Debug.Log("trying to add tile");
-		if(!myTiles.ContainsKey(tile.getCoords())) {
+		if(!myTiles.ContainsKey(coords)) {
 			//Debug.Log("added tile at: " + tile.coordsToVector3());
-			myTiles.Add(tile.getCoords(), tile);
+			myTiles.Add(coords, tile);
 		}
 	}
 
@@ -55,7 +69,7 @@ public class TileMap : MonoBehaviour {
 
     //tileMap can only interface with TileCoords?
     //outside static method to convert to tileCoords?
-	public  Tile getTile(Vector3 vector){
+	/*public  Tile getTile(Vector3 vector){
 		TileCoords coords = new TileCoords(Mathf.FloorToInt(vector.x), Mathf.FloorToInt(vector.z));
         //print(coords.x + ", " +  coords.z);
         //Debug.Log(myTiles);
@@ -63,6 +77,25 @@ public class TileMap : MonoBehaviour {
         	return null;
         }
 		return myTiles[coords];
-	}
+	}*/
+
+    //return false if unable to move Transform to Tile
+    //else true
+    public void setTransformToTile(Transform transform, TileCoords tile) {
+        //if (!getTile(tile).isTraversable()) return false;
+        transform.position = new Vector3(tile.x, 0, tile.z);
+    }
+
+    public bool moveTransformTowardsTile(Transform transform, TileCoords tile) {
+        Vector3 goalVector = new Vector3(tile.x, 0, tile.z);
+        if (transform.position == goalVector)
+        {
+            return true;
+        }
+        else {
+            transform.position = Vector3.MoveTowards(transform.position, goalVector, Time.deltaTime * 3f);
+        }
+        return false;
+    }
 
 }

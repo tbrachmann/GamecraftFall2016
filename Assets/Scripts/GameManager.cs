@@ -43,7 +43,7 @@ class GameManager : MonoBehaviour {
 		return tileMap;
 	}
 
-    public Enemy getEnemyOnTile(Tile tile) {
+    public Enemy getEnemyOnTile(TileCoords tile) {
         foreach (Enemy enemy in enemies) {
             if (enemy.myCurrentTile == tile) {
                 return enemy;

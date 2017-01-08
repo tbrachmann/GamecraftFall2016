@@ -29,7 +29,6 @@ public class CustomImporter_TileType : Tiled2Unity.ICustomTiledImporter {
                 }
                 Vector3 coords = new Vector3(Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.y))-(numTiles_x-1)), 0, Mathf.Abs(Mathf.Abs(Mathf.FloorToInt(myPos.x))-(numTiles_z-1)));
                 //Vector3 coords = new Vector3(myPos.y, 0, myPos.x);
-                Tile.TileType myType;
                 if (!myDict.ContainsKey(coords))
                 {
                     myDict.Add(coords, stringType);
